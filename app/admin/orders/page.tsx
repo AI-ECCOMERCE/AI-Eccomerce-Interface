@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  ADMIN_ORDER_POLL_INTERVAL_MS,
+  markOrdersAsSeen,
+} from "../../lib/adminOrders";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -47,6 +51,7 @@ export default function OrdersPage() {
 
       if (json.success) {
         setOrders(json.data);
+        markOrdersAsSeen();
         return json.data as Order[];
       }
     } catch (err) {
@@ -72,7 +77,13 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
-    fetchOrders();
+    void fetchOrders();
+
+    const timer = window.setInterval(() => {
+      void fetchOrders();
+    }, ADMIN_ORDER_POLL_INTERVAL_MS);
+
+    return () => window.clearInterval(timer);
   }, []);
 
   const handleOpenDetail = (order: Order) => {

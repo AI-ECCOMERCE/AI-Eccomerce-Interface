@@ -1,16 +1,36 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import {
+  ADMIN_ORDER_POLL_INTERVAL_MS,
+  countUnreadOrders,
+  getLastSeenOrdersAt,
+  markOrdersAsSeen,
+} from "../lib/adminOrders";
 
-const menuItems = [
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+type SidebarItem = {
+  label: string;
+  href: string;
+  icon: string;
+  badge?: string;
+};
+
+type SidebarSection = {
+  section: string;
+  items: SidebarItem[];
+};
+
+const menuItems: SidebarSection[] = [
   {
     section: "UTAMA",
     items: [
       { label: "Dashboard", href: "/admin", icon: "ph-squares-four" },
-      { label: "Pesanan", href: "/admin/orders", icon: "ph-receipt", badge: "12" },
+      { label: "Pesanan", href: "/admin/orders", icon: "ph-receipt" },
     ],
   },
   {
@@ -40,6 +60,77 @@ const menuItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [unreadOrdersCount, setUnreadOrdersCount] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+
+    const syncUnreadOrders = async () => {
+      if (pathname?.startsWith("/admin/orders")) {
+        markOrdersAsSeen();
+
+        if (active) {
+          setUnreadOrdersCount(0);
+        }
+
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/api/orders`);
+        const json = (await response.json()) as {
+          success: boolean;
+          data?: { created_at?: string | null }[];
+        };
+
+        if (!json.success || !active) {
+          return;
+        }
+
+        const unreadCount = countUnreadOrders(
+          json.data || [],
+          getLastSeenOrdersAt()
+        );
+
+        setUnreadOrdersCount(unreadCount);
+      } catch (error) {
+        console.error("Failed to load unread order count:", error);
+      }
+    };
+
+    void syncUnreadOrders();
+
+    const timer = window.setInterval(
+      () => void syncUnreadOrders(),
+      ADMIN_ORDER_POLL_INTERVAL_MS
+    );
+
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [pathname]);
+
+  const menuSections = useMemo(
+    () =>
+      menuItems.map((section) => ({
+        ...section,
+        items: section.items.map((item) =>
+          item.href === "/admin/orders"
+            ? {
+                ...item,
+                badge:
+                  unreadOrdersCount > 0
+                    ? unreadOrdersCount > 99
+                      ? "99+"
+                      : String(unreadOrdersCount)
+                    : undefined,
+              }
+            : item
+        ),
+      })),
+    [unreadOrdersCount]
+  );
 
   return (
     <>
@@ -79,7 +170,7 @@ export default function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-3">
-          {menuItems.map((section) => (
+          {menuSections.map((section) => (
             <div key={section.section} className="mb-5">
               {!collapsed && (
                 <p className="px-3 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.15em]">
