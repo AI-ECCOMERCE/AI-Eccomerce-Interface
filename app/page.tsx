@@ -14,12 +14,7 @@ import Footer from "./components/Footer";
 import WhatsAppFloat from "./components/WhatsAppFloat";
 import CartModal from "./components/CartModal";
 import ToastNotification from "./components/ToastNotification";
-
-interface CartItem {
-  name: string;
-  price: number;
-  quantity: number;
-}
+import { CartItem } from "./lib/checkout";
 
 export default function Home() {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -29,22 +24,22 @@ export default function Home() {
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  const addToCart = useCallback((name: string, price: number) => {
+  const addToCart = useCallback((product: Omit<CartItem, "quantity">) => {
     setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.name === name);
+      const existingItem = prevCart.find((item) => item.id === product.id);
       if (existingItem) {
         return prevCart.map((item) =>
-          item.name === name
+          item.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       } else {
-        return [...prevCart, { name, price, quantity: 1 }];
+        return [...prevCart, { ...product, quantity: 1 }];
       }
     });
 
     // Show toast
-    setToastMessage(`${name} ditambahkan ke keranjang.`);
+    setToastMessage(`${product.name} ditambahkan ke keranjang.`);
     setToastVisible(true);
     setTimeout(() => {
       setToastVisible(false);

@@ -14,6 +14,7 @@ interface Product {
   status: string;
   icon: string;
   gradient: string;
+  description?: string;
   categories?: { name: string };
 }
 
@@ -22,8 +23,12 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: "", category_slug: "ai-chat", price: 0, original_price: 0, stock: 0, description: "" });
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const fetchProducts = async () => {
     try {
@@ -37,9 +42,12 @@ export default function ProductsPage() {
     }
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const handleAddProduct = async () => {
+    setIsSubmitting(true);
     try {
       const json = await adminFetch<{ success: boolean; data: Product }>("/api/products", {
         method: "POST",
@@ -54,6 +62,35 @@ export default function ProductsPage() {
     } catch (err) {
       console.error("Failed to add product:", err);
       setErrorMessage(err instanceof Error ? err.message : "Gagal menambah produk.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditProductClick = (product: Product) => {
+    setEditingProduct(product);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateProduct = async () => {
+    if (!editingProduct) return;
+    setIsUpdating(true);
+    try {
+      const json = await adminFetch<{ success: boolean; data: Product }>(`/api/products/${editingProduct.id}`, {
+        method: "PUT",
+        body: JSON.stringify(editingProduct),
+      });
+      if (json.success) {
+        showSuccessToast("Produk diperbarui", "Perubahan produk berhasil disimpan.");
+        setShowEditModal(false);
+        setEditingProduct(null);
+        fetchProducts();
+      }
+    } catch (err) {
+      console.error("Failed to update product:", err);
+      setErrorMessage(err instanceof Error ? err.message : "Gagal memperbarui produk.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -95,7 +132,6 @@ export default function ProductsPage() {
 
   return (
     <div className="p-6 lg:p-8">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
           <h1 className="font-display text-2xl lg:text-3xl font-extrabold text-slate-900">Manajemen Produk</h1>
@@ -113,7 +149,6 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* Stats Row */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-slate-100 p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center"><i className="ph-duotone ph-package text-xl text-brand-600"></i></div>
@@ -133,7 +168,6 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 border-b border-slate-100">
           <div className="relative flex-1 max-w-md">
@@ -179,9 +213,14 @@ export default function ProductsPage() {
                       </span>
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <button onClick={() => handleDeleteProduct(product.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Hapus">
-                        <i className="ph-duotone ph-trash text-base"></i>
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => handleEditProductClick(product)} className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-all" title="Edit">
+                          <i className="ph-duotone ph-pencil-simple text-base"></i>
+                        </button>
+                        <button onClick={() => handleDeleteProduct(product.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Hapus">
+                          <i className="ph-duotone ph-trash text-base"></i>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -194,7 +233,6 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Add Product Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAddModal(false)}></div>
@@ -239,10 +277,76 @@ export default function ProductsPage() {
               </div>
             </div>
             <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-100">
-              <button onClick={() => setShowAddModal(false)} className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all">Batal</button>
-              <button onClick={handleAddProduct} className="btn-primary px-5 py-2.5 text-sm font-semibold text-white rounded-xl flex items-center gap-2">
-                <i className="ph-duotone ph-check text-base"></i>
-                Simpan Produk
+              <button disabled={isSubmitting} onClick={() => setShowAddModal(false)} className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50">Batal</button>
+              <button disabled={isSubmitting} onClick={handleAddProduct} className="btn-primary px-5 py-2.5 text-sm font-semibold text-white rounded-xl flex items-center gap-2 disabled:opacity-70">
+                {isSubmitting ? (
+                  <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Menyimpan...</>
+                ) : (
+                  <><i className="ph-duotone ph-check text-base"></i> Simpan Produk</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditModal && editingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowEditModal(false)}></div>
+          <div className="relative bg-white rounded-3xl shadow-2xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h3 className="font-display font-bold text-lg text-slate-900">Edit Produk</h3>
+              <button onClick={() => setShowEditModal(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition-all"><i className="ph-duotone ph-x text-xl"></i></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Nama Produk</label>
+                <input type="text" value={editingProduct.name} onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Kategori</label>
+                  <select value={editingProduct.category_slug} onChange={(e) => setEditingProduct({...editingProduct, category_slug: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 bg-white">
+                    <option value="ai-chat">AI Chatbot</option>
+                    <option value="design">Desain & Kreatif</option>
+                    <option value="productivity">Produktivitas</option>
+                    <option value="coding">Coding & Dev</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Stok</label>
+                  <input type="number" value={editingProduct.stock} onChange={(e) => setEditingProduct({...editingProduct, stock: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Harga Asli (Rp)</label>
+                  <input type="number" value={editingProduct.original_price} onChange={(e) => setEditingProduct({...editingProduct, original_price: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Harga Jual (Rp)</label>
+                  <input type="number" value={editingProduct.price} onChange={(e) => setEditingProduct({...editingProduct, price: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Status</label>
+                  <select value={editingProduct.status} onChange={(e) => setEditingProduct({...editingProduct, status: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 bg-white">
+                    <option value="active">Aktif</option>
+                    <option value="draft">Draft</option>
+                    <option value="out_of_stock">Habis</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-100">
+              <button disabled={isUpdating} onClick={() => setShowEditModal(false)} className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50">Batal</button>
+              <button disabled={isUpdating} onClick={handleUpdateProduct} className="btn-primary px-5 py-2.5 text-sm font-semibold text-white rounded-xl flex items-center gap-2 disabled:opacity-70">
+                {isUpdating ? (
+                  <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Mengupdate...</>
+                ) : (
+                  <><i className="ph-duotone ph-check text-base"></i> Simpan Perubahan</>
+                )}
               </button>
             </div>
           </div>

@@ -3,23 +3,43 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { setAuthFeedback } from "@/lib/auth-feedback";
+import { adminFetch } from "@/lib/api/adminFetch";
 import { createClient } from "@/lib/supabase/client";
+import {
+  ADMIN_ORDER_POLL_INTERVAL_MS,
+  countUnreadOrders,
+  getLastSeenOrdersAt,
+  markOrdersAsSeen,
+} from "@/app/lib/adminOrders";
 
-const menuItems = [
+type SidebarItem = {
+  label: string;
+  href: string;
+  icon: string;
+  badge?: string;
+};
+
+type SidebarSection = {
+  section: string;
+  items: SidebarItem[];
+};
+
+const menuItems: SidebarSection[] = [
   {
     section: "UTAMA",
     items: [
       { label: "Dashboard", href: "/admin", icon: "ph-squares-four" },
-      { label: "Pesanan", href: "/admin/orders", icon: "ph-receipt", badge: "12" },
+      { label: "Pesanan", href: "/admin/orders", icon: "ph-receipt" },
     ],
   },
   {
     section: "KATALOG",
     items: [
       { label: "Produk", href: "/admin/products", icon: "ph-package" },
+      { label: "Inventori Akun", href: "/admin/accounts", icon: "ph-key" },
       { label: "Kategori", href: "/admin/categories", icon: "ph-tag" },
       { label: "Bundle", href: "/admin/bundles", icon: "ph-gift" },
     ],
@@ -48,9 +68,71 @@ export default function Sidebar({ userEmail }: SidebarProps) {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [unreadOrdersCount, setUnreadOrdersCount] = useState(0);
 
   const userLabel = useMemo(() => userEmail.split("@")[0] || "Admin", [userEmail]);
   const userInitial = useMemo(() => userLabel.charAt(0).toUpperCase(), [userLabel]);
+
+  useEffect(() => {
+    let active = true;
+
+    const syncUnreadOrders = async () => {
+      if (pathname?.startsWith("/admin/orders")) {
+        markOrdersAsSeen();
+
+        if (active) {
+          setUnreadOrdersCount(0);
+        }
+
+        return;
+      }
+
+      try {
+        const json = await adminFetch<{ success: boolean; data?: { created_at?: string | null }[] }>("/api/orders");
+
+        if (!json.success || !active) {
+          return;
+        }
+
+        const unreadCount = countUnreadOrders(json.data || [], getLastSeenOrdersAt());
+        setUnreadOrdersCount(unreadCount);
+      } catch (error) {
+        console.error("Failed to load unread order count:", error);
+      }
+    };
+
+    void syncUnreadOrders();
+
+    const timer = window.setInterval(() => {
+      void syncUnreadOrders();
+    }, ADMIN_ORDER_POLL_INTERVAL_MS);
+
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [pathname]);
+
+  const menuSections = useMemo(
+    () =>
+      menuItems.map((section) => ({
+        ...section,
+        items: section.items.map((item) =>
+          item.href === "/admin/orders"
+            ? {
+                ...item,
+                badge:
+                  unreadOrdersCount > 0
+                    ? unreadOrdersCount > 99
+                      ? "99+"
+                      : String(unreadOrdersCount)
+                    : undefined,
+              }
+            : item
+        ),
+      })),
+    [unreadOrdersCount]
+  );
 
   async function handleLogout() {
     setIsSigningOut(true);
@@ -109,7 +191,7 @@ export default function Sidebar({ userEmail }: SidebarProps) {
       </div>
 
       <nav className="flex-1 overflow-y-auto py-4 px-3">
-        {menuItems.map((section) => (
+        {menuSections.map((section) => (
           <div key={section.section} className="mb-5">
             {!collapsed && (
               <p className="px-3 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.15em]">

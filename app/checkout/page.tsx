@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-
-interface CartItem {
-  name: string;
-  price: number;
-  quantity: number;
-}
+import Link from "next/link";
+import {
+  API_URL,
+  CART_STORAGE_KEY,
+  CartItem,
+  CheckoutOrder,
+  ORDER_STORAGE_KEY,
+} from "../lib/checkout";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -23,9 +25,9 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const savedCart = localStorage.getItem("designai-cart");
+    const savedCart = localStorage.getItem(CART_STORAGE_KEY);
     if (savedCart) {
-      const parsed = JSON.parse(savedCart);
+      const parsed = JSON.parse(savedCart) as CartItem[];
       if (parsed.length === 0) {
         router.push("/");
       }
@@ -64,9 +66,6 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-
-      // Create order via API (saves to Supabase)
       const res = await fetch(`${API_URL}/api/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -76,8 +75,7 @@ export default function CheckoutPage() {
           customer_phone: formData.phone,
           customer_notes: formData.notes,
           items: cart.map((item) => ({
-            name: item.name,
-            price: item.price,
+            product_id: item.id,
             quantity: item.quantity,
           })),
         }),
@@ -85,24 +83,24 @@ export default function CheckoutPage() {
 
       const json = await res.json();
 
-      if (json.success) {
-        // Save order data to localStorage for payment page
-        const orderData = {
-          customer: formData,
-          items: cart,
-          totalPrice,
-          orderId: json.data.order_id,
-          createdAt: json.data.created_at,
-        };
-        localStorage.setItem("designai-order", JSON.stringify(orderData));
-        router.push("/payment");
-      } else {
-        alert("Gagal membuat pesanan: " + (json.error || "Coba lagi"));
-        setIsSubmitting(false);
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Gagal membuat pesanan.");
       }
+
+      const orderData = json.data as CheckoutOrder;
+      localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orderData));
+      router.push(
+        `/payment?order=${encodeURIComponent(orderData.id)}&token=${encodeURIComponent(
+          orderData.paymentAccess.token
+        )}`
+      );
     } catch (err) {
       console.error("Order error:", err);
-      alert("Gagal terhubung ke server. Pastikan API berjalan.");
+      alert(
+        err instanceof Error
+          ? err.message
+          : "Gagal terhubung ke server. Pastikan API berjalan."
+      );
       setIsSubmitting(false);
     }
   };
@@ -113,7 +111,7 @@ export default function CheckoutPage() {
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-100 sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
-            <a href="/" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <Image
                 src="/ailogo.png"
                 alt="DesignAI Store"
@@ -121,7 +119,7 @@ export default function CheckoutPage() {
                 height={36}
                 className="h-8 lg:h-9 w-auto object-contain"
               />
-            </a>
+            </Link>
 
             {/* Stepper */}
             <div className="hidden sm:flex items-center gap-2">
@@ -144,13 +142,13 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            <a
+            <Link
               href="/"
               className="text-sm text-slate-500 hover:text-brand-600 transition-colors flex items-center gap-1"
             >
               <i className="ph-duotone ph-arrow-left text-base"></i>
               Kembali
-            </a>
+            </Link>
           </div>
         </div>
       </header>
@@ -368,8 +366,8 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-sm text-slate-500">Biaya Admin</span>
-                    <span className="text-sm font-semibold text-green-600">
-                      Gratis
+                    <span className="text-sm font-semibold text-slate-500">
+                      Dihitung otomatis di QRIS
                     </span>
                   </div>
                 </div>
@@ -377,7 +375,7 @@ export default function CheckoutPage() {
                 <div className="mt-4 pt-4 border-t-2 border-slate-100">
                   <div className="flex items-center justify-between">
                     <span className="text-base font-bold text-slate-900">
-                      Total
+                      Estimasi Subtotal
                     </span>
                     <span className="text-xl font-display font-extrabold text-brand-600">
                       Rp {totalPrice.toLocaleString("id-ID")}

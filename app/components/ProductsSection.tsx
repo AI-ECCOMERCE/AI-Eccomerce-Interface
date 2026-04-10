@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { brandIconMap } from "./BrandIcons";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+import { API_URL, CartItem } from "../lib/checkout";
 
 interface Product {
   id: string;
@@ -30,7 +29,7 @@ interface Category {
 }
 
 interface ProductsSectionProps {
-  onAddToCart: (name: string, price: number) => void;
+  onAddToCart: (product: Omit<CartItem, "quantity">) => void;
 }
 
 export default function ProductsSection({ onAddToCart }: ProductsSectionProps) {
@@ -233,7 +232,13 @@ export default function ProductsSection({ onAddToCart }: ProductsSectionProps) {
                       )}
                     </div>
                     <button
-                      onClick={() => onAddToCart(product.name, product.price)}
+                      onClick={() =>
+                        onAddToCart({
+                          id: product.id,
+                          name: product.name,
+                          price: product.price,
+                        })
+                      }
                       disabled={product.stock <= 0}
                       className="mt-4 w-full btn-primary py-3 text-sm font-semibold text-white rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
