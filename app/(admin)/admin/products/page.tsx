@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+import { adminFetch, showSuccessToast } from "@/lib/api/adminFetch";
 
 interface Product {
   id: string;
@@ -22,6 +21,7 @@ interface Product {
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -32,37 +32,36 @@ export default function ProductsPage() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/products`);
-      const json = await res.json();
+      const json = await adminFetch<{ success: boolean; data: Product[] }>("/api/products");
       if (json.success) setProducts(json.data);
     } catch (err) {
       console.error("Failed to fetch products:", err);
+      setErrorMessage(err instanceof Error ? err.message : "Gagal memuat produk admin.");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const handleAddProduct = async () => {
     setIsSubmitting(true);
     try {
-      const res = await fetch(`${API_URL}/api/products`, {
+      const json = await adminFetch<{ success: boolean; data: Product }>("/api/products", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newProduct),
       });
-      const json = await res.json();
       if (json.success) {
+        showSuccessToast("Produk ditambahkan", "Produk baru berhasil disimpan.");
         setShowAddModal(false);
         setNewProduct({ name: "", category_slug: "ai-chat", price: 0, original_price: 0, stock: 0, description: "" });
         fetchProducts();
-      } else {
-        alert(json.error || "Gagal menambah produk");
       }
     } catch (err) {
       console.error("Failed to add product:", err);
-      alert("Terjadi kesalahan jaringan");
+      setErrorMessage(err instanceof Error ? err.message : "Gagal menambah produk.");
     } finally {
       setIsSubmitting(false);
     }
@@ -77,22 +76,19 @@ export default function ProductsPage() {
     if (!editingProduct) return;
     setIsUpdating(true);
     try {
-      const res = await fetch(`${API_URL}/api/products/${editingProduct.id}`, {
+      const json = await adminFetch<{ success: boolean; data: Product }>(`/api/products/${editingProduct.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editingProduct),
       });
-      const json = await res.json();
       if (json.success) {
+        showSuccessToast("Produk diperbarui", "Perubahan produk berhasil disimpan.");
         setShowEditModal(false);
         setEditingProduct(null);
         fetchProducts();
-      } else {
-        alert(json.error || "Gagal mengupdate produk");
       }
     } catch (err) {
       console.error("Failed to update product:", err);
-      alert("Terjadi kesalahan jaringan");
+      setErrorMessage(err instanceof Error ? err.message : "Gagal memperbarui produk.");
     } finally {
       setIsUpdating(false);
     }
@@ -101,10 +97,12 @@ export default function ProductsPage() {
   const handleDeleteProduct = async (id: string) => {
     if (!confirm("Yakin mau hapus produk ini?")) return;
     try {
-      await fetch(`${API_URL}/api/products/${id}`, { method: "DELETE" });
+      await adminFetch(`/api/products/${id}`, { method: "DELETE" });
+      showSuccessToast("Produk dihapus", "Produk berhasil dihapus.");
       fetchProducts();
     } catch (err) {
       console.error("Failed to delete:", err);
+      setErrorMessage(err instanceof Error ? err.message : "Gagal menghapus produk.");
     }
   };
 
@@ -134,7 +132,6 @@ export default function ProductsPage() {
 
   return (
     <div className="p-6 lg:p-8">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
           <h1 className="font-display text-2xl lg:text-3xl font-extrabold text-slate-900">Manajemen Produk</h1>
@@ -146,7 +143,12 @@ export default function ProductsPage() {
         </button>
       </div>
 
-      {/* Stats Row */}
+      {errorMessage && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {errorMessage}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-slate-100 p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center"><i className="ph-duotone ph-package text-xl text-brand-600"></i></div>
@@ -166,7 +168,6 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 border-b border-slate-100">
           <div className="relative flex-1 max-w-md">
@@ -232,7 +233,6 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Add Product Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAddModal(false)}></div>
@@ -290,7 +290,6 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* Edit Product Modal */}
       {showEditModal && editingProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowEditModal(false)}></div>

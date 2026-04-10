@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+import { adminFetch } from "@/lib/api/adminFetch";
 
 interface DashboardData {
   stats: {
@@ -18,16 +17,17 @@ interface DashboardData {
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchDashboard() {
       try {
-        const res = await fetch(`${API_URL}/api/dashboard`);
-        const json = await res.json();
+        const json = await adminFetch<{ success: boolean; data: DashboardData }>("/api/dashboard");
         if (json.success) setData(json.data);
       } catch (err) {
         console.error("Failed to fetch dashboard:", err);
+        setErrorMessage(err instanceof Error ? err.message : "Gagal memuat dashboard admin.");
       } finally {
         setLoading(false);
       }
@@ -55,7 +55,7 @@ export default function DashboardPage() {
   if (!data) {
     return (
       <div className="p-8 text-center text-slate-500">
-        <p>Gagal memuat data. Pastikan API server berjalan di port 4000.</p>
+        <p>{errorMessage || "Gagal memuat data. Pastikan API server berjalan di port 4000."}</p>
       </div>
     );
   }

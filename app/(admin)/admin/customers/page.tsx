@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+import { adminFetch } from "@/lib/api/adminFetch";
 
 interface Customer {
   name: string;
@@ -15,20 +14,22 @@ interface Customer {
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchCustomers() {
       try {
-        const res = await fetch(`${API_URL}/api/customers`);
-        const json = await res.json();
+        const json = await adminFetch<{ success: boolean; data: Customer[] }>("/api/customers");
         if (json.success) setCustomers(json.data);
       } catch (err) {
         console.error("Failed to fetch customers:", err);
+        setErrorMessage(err instanceof Error ? err.message : "Gagal memuat data pelanggan.");
       } finally {
         setLoading(false);
       }
     }
+
     fetchCustomers();
   }, []);
 
@@ -56,6 +57,12 @@ export default function CustomersPage() {
           <span className="text-xs text-slate-400">pelanggan</span>
         </div>
       </div>
+
+      {errorMessage && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {errorMessage}
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
         <div className="overflow-x-auto">

@@ -1,36 +1,35 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+import { adminFetch } from "@/lib/api/adminFetch";
 
 export default function SalesPage() {
   const [stats, setStats] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchAll() {
       try {
-        const [dashRes, ordersRes, productsRes] = await Promise.all([
-          fetch(`${API_URL}/api/dashboard`),
-          fetch(`${API_URL}/api/orders`),
-          fetch(`${API_URL}/api/products`),
+        const [dashData, ordersData, productsData] = await Promise.all([
+          adminFetch<{ success: boolean; data: { stats: any } }>("/api/dashboard"),
+          adminFetch<{ success: boolean; data: any[] }>("/api/orders"),
+          adminFetch<{ success: boolean; data: any[] }>("/api/products"),
         ]);
-        const dashData = await dashRes.json();
-        const ordersData = await ordersRes.json();
-        const productsData = await productsRes.json();
 
         if (dashData.success) setStats(dashData.data.stats);
         if (ordersData.success) setOrders(ordersData.data);
         if (productsData.success) setProducts(productsData.data);
       } catch (err) {
         console.error("Failed to fetch sales data:", err);
+        setErrorMessage(err instanceof Error ? err.message : "Gagal memuat laporan penjualan.");
       } finally {
         setLoading(false);
       }
     }
+
     fetchAll();
   }, []);
 
@@ -40,7 +39,6 @@ export default function SalesPage() {
     return `Rp ${val.toLocaleString("id-ID")}`;
   };
 
-  // Group orders by category
   const categoryRevenue = products.reduce((acc: Record<string, { category: string; revenue: number }>, p: any) => {
     const cat = p.categories?.name || p.category_slug;
     if (!acc[cat]) acc[cat] = { category: cat, revenue: 0 };
@@ -50,7 +48,6 @@ export default function SalesPage() {
   const categoryList = Object.values(categoryRevenue).sort((a: any, b: any) => b.revenue - a.revenue);
   const maxCatRevenue = categoryList.length > 0 ? (categoryList[0] as any).revenue : 1;
 
-  // Group orders by date
   const ordersByDate = orders.reduce((acc: Record<string, { date: string; revenue: number; count: number }>, o: any) => {
     const date = new Date(o.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
     if (!acc[date]) acc[date] = { date, revenue: 0, count: 0 };
@@ -86,7 +83,12 @@ export default function SalesPage() {
         </div>
       </div>
 
-      {/* Revenue Cards */}
+      {errorMessage && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {errorMessage}
+        </div>
+      )}
+
       <div className="grid sm:grid-cols-3 gap-5 mb-8">
         <div className="bg-gradient-to-br from-brand-600 to-brand-700 rounded-2xl p-6 text-white">
           <div className="flex items-center gap-2 mb-3">
@@ -112,7 +114,6 @@ export default function SalesPage() {
       </div>
 
       <div className="grid xl:grid-cols-3 gap-6 mb-8">
-        {/* Top Products */}
         <div className="xl:col-span-2 bg-white rounded-2xl border border-slate-100 p-6">
           <h3 className="font-display font-bold text-lg text-slate-900 mb-6">Produk Terlaris</h3>
           <div className="space-y-4">
@@ -137,7 +138,6 @@ export default function SalesPage() {
           </div>
         </div>
 
-        {/* Category Breakdown */}
         <div className="bg-white rounded-2xl border border-slate-100 p-6">
           <h3 className="font-display font-bold text-lg text-slate-900 mb-6">Revenue per Kategori</h3>
           {categoryList.length === 0 ? (
@@ -164,7 +164,6 @@ export default function SalesPage() {
         </div>
       </div>
 
-      {/* Daily Sales */}
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
         <div className="p-5 border-b border-slate-100">
           <h3 className="font-display font-bold text-lg text-slate-900">Detail Penjualan</h3>
