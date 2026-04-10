@@ -1,8 +1,21 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { verifyAdminAccess } from "@/lib/auth/is-admin";
 
 const LOGIN_PATH = "/admin/login";
 const DASHBOARD_PATH = "/admin";
+
+function redirectToLogin(request: NextRequest) {
+  const url = request.nextUrl.clone();
+  url.pathname = LOGIN_PATH;
+  return NextResponse.redirect(url);
+}
+
+function redirectToDashboard(request: NextRequest) {
+  const url = request.nextUrl.clone();
+  url.pathname = DASHBOARD_PATH;
+  return NextResponse.redirect(url);
+}
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -28,21 +41,39 @@ export async function updateSession(request: NextRequest) {
 
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser();
 
-  if (!user && request.nextUrl.pathname !== LOGIN_PATH) {
-    const url = request.nextUrl.clone();
-    url.pathname = LOGIN_PATH;
-    return NextResponse.redirect(url);
+  if (error || !user) {
+    if (request.nextUrl.pathname === LOGIN_PATH) {
+      response.headers.set("Cache-Control", "private, no-store");
+      return response;
+    }
+
+    return redirectToLogin(request);
   }
 
-  if (user && request.nextUrl.pathname === LOGIN_PATH) {
-    const url = request.nextUrl.clone();
-    url.pathname = DASHBOARD_PATH;
-    return NextResponse.redirect(url);
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const adminCheck = await verifyAdminAccess(session?.access_token);
+
+  if (!adminCheck.isAdmin) {
+    await supabase.auth.signOut();
+
+    if (request.nextUrl.pathname === LOGIN_PATH) {
+      response.headers.set("Cache-Control", "private, no-store");
+      return response;
+    }
+
+    return redirectToLogin(request);
+  }
+
+  if (request.nextUrl.pathname === LOGIN_PATH) {
+    return redirectToDashboard(request);
   }
 
   response.headers.set("Cache-Control", "private, no-store");
-
   return response;
 }

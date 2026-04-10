@@ -4,7 +4,8 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { consumeAuthFeedback } from "@/lib/auth-feedback";
+import { consumeAuthFeedback, setAuthFeedback } from "@/lib/auth-feedback";
+import { verifyAdminAccess } from "@/lib/auth/is-admin";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
@@ -30,12 +31,30 @@ export default function AdminLoginPage() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (user) {
+      if (!user) {
+        setIsCheckingSession(false);
+        return;
+      }
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const adminCheck = await verifyAdminAccess(session?.access_token);
+
+      if (adminCheck.isAdmin) {
         router.replace("/admin");
         router.refresh();
         return;
       }
 
+      await supabase.auth.signOut();
+      if (adminCheck.reason) {
+        setAuthFeedback({
+          type: "error",
+          title: "Akses admin ditolak",
+          message: adminCheck.reason,
+        });
+      }
       setIsCheckingSession(false);
     }
 
@@ -56,6 +75,20 @@ export default function AdminLoginPage() {
     if (error) {
       setErrorMessage(error.message);
       toast.error("Login gagal", { description: error.message });
+      setIsSubmitting(false);
+      return;
+    }
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const adminCheck = await verifyAdminAccess(session?.access_token);
+
+    if (!adminCheck.isAdmin) {
+      const message = adminCheck.reason || "Akun ini tidak memiliki akses admin.";
+      await supabase.auth.signOut();
+      setErrorMessage(message);
+      toast.error("Akses admin ditolak", { description: message });
       setIsSubmitting(false);
       return;
     }
