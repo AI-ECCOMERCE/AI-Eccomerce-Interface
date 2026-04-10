@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const inter = Inter({
@@ -35,7 +36,10 @@ export default function RootLayout({
           href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css"
         />
       </head>
-      <body className="bg-white text-slate-800 antialiased">{children}</body>
+      <body className="bg-white text-slate-800 antialiased">
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

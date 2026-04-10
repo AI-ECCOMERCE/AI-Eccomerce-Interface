@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+import { adminFetch, showSuccessToast } from "@/lib/api/adminFetch";
 
 interface Product {
   id: string;
@@ -21,17 +20,18 @@ interface Product {
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: "", category_slug: "ai-chat", price: 0, original_price: 0, stock: 0, description: "" });
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/products`);
-      const json = await res.json();
+      const json = await adminFetch<{ success: boolean; data: Product[] }>("/api/products");
       if (json.success) setProducts(json.data);
     } catch (err) {
       console.error("Failed to fetch products:", err);
+      setErrorMessage(err instanceof Error ? err.message : "Gagal memuat produk admin.");
     } finally {
       setLoading(false);
     }
@@ -41,29 +41,31 @@ export default function ProductsPage() {
 
   const handleAddProduct = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/products`, {
+      const json = await adminFetch<{ success: boolean; data: Product }>("/api/products", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newProduct),
       });
-      const json = await res.json();
       if (json.success) {
+        showSuccessToast("Produk ditambahkan", "Produk baru berhasil disimpan.");
         setShowAddModal(false);
         setNewProduct({ name: "", category_slug: "ai-chat", price: 0, original_price: 0, stock: 0, description: "" });
         fetchProducts();
       }
     } catch (err) {
       console.error("Failed to add product:", err);
+      setErrorMessage(err instanceof Error ? err.message : "Gagal menambah produk.");
     }
   };
 
   const handleDeleteProduct = async (id: string) => {
     if (!confirm("Yakin mau hapus produk ini?")) return;
     try {
-      await fetch(`${API_URL}/api/products/${id}`, { method: "DELETE" });
+      await adminFetch(`/api/products/${id}`, { method: "DELETE" });
+      showSuccessToast("Produk dihapus", "Produk berhasil dihapus.");
       fetchProducts();
     } catch (err) {
       console.error("Failed to delete:", err);
+      setErrorMessage(err instanceof Error ? err.message : "Gagal menghapus produk.");
     }
   };
 
@@ -104,6 +106,12 @@ export default function ProductsPage() {
           Tambah Produk
         </button>
       </div>
+
+      {errorMessage && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {errorMessage}
+        </div>
+      )}
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">

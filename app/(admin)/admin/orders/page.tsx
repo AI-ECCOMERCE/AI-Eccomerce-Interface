@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+import { adminFetch, showSuccessToast } from "@/lib/api/adminFetch";
 
 interface Order {
   id: string;
@@ -21,15 +20,16 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/orders`);
-      const json = await res.json();
+      const json = await adminFetch<{ success: boolean; data: Order[] }>("/api/orders");
       if (json.success) setOrders(json.data);
     } catch (err) {
       console.error("Failed to fetch orders:", err);
+      setErrorMessage(err instanceof Error ? err.message : "Gagal memuat pesanan admin.");
     } finally {
       setLoading(false);
     }
@@ -39,15 +39,16 @@ export default function OrdersPage() {
 
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
-      await fetch(`${API_URL}/api/orders/${id}/status`, {
+      await adminFetch(`/api/orders/${id}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
+      showSuccessToast("Status pesanan diperbarui", "Pesanan berhasil diperbarui.");
       fetchOrders();
       setSelectedOrder(null);
     } catch (err) {
       console.error("Failed to update:", err);
+      setErrorMessage(err instanceof Error ? err.message : "Gagal memperbarui status pesanan.");
     }
   };
 
@@ -88,6 +89,12 @@ export default function OrdersPage() {
           <p className="text-sm text-slate-500 mt-1">Kelola semua pesanan masuk dari pelanggan.</p>
         </div>
       </div>
+
+      {errorMessage && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {errorMessage}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
