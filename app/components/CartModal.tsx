@@ -2,12 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
-interface CartItem {
-  name: string;
-  price: number;
-  quantity: number;
-}
+import { CART_STORAGE_KEY, CartItem } from "../lib/checkout";
 
 interface CartModalProps {
   isOpen: boolean;
@@ -27,9 +22,8 @@ export default function CartModal({
 
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => setPanelVisible(true), 10);
-    } else {
-      setPanelVisible(false);
+      const timer = window.setTimeout(() => setPanelVisible(true), 10);
+      return () => window.clearTimeout(timer);
     }
   }, [isOpen]);
 
@@ -38,7 +32,6 @@ export default function CartModal({
     setTimeout(() => onClose(), 300);
   };
 
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
@@ -46,7 +39,7 @@ export default function CartModal({
 
   const handleCheckout = () => {
     // Save cart to localStorage for checkout page
-    localStorage.setItem("designai-cart", JSON.stringify(cart));
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
     handleClose();
     setTimeout(() => {
       router.push("/checkout");
