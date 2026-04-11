@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import AdminRouteLink from "@/app/components/admin/AdminRouteLink";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -10,7 +10,6 @@ import { adminFetch } from "@/lib/api/adminFetch";
 import { createClient } from "@/lib/supabase/client";
 import {
   ADMIN_ORDER_POLL_INTERVAL_MS,
-  countUnreadOrders,
   getLastSeenOrdersAt,
   markOrdersAsSeen,
 } from "@/app/lib/adminOrders";
@@ -25,6 +24,24 @@ type SidebarItem = {
 type SidebarSection = {
   section: string;
   items: SidebarItem[];
+};
+
+type OrdersSummaryResponse = {
+  success?: boolean;
+  count?: number;
+  unread_count?: number;
+  unreadOrders?: number;
+  total_orders?: number;
+  totalOrders?: number;
+  data?: {
+    count?: number;
+    since_count?: number;
+    unread_count?: number;
+    unread_orders?: number;
+    unreadOrders?: number;
+    total_orders?: number;
+    totalOrders?: number;
+  };
 };
 
 const menuItems: SidebarSection[] = [
@@ -63,6 +80,29 @@ interface SidebarProps {
   userEmail: string;
 }
 
+function getNumberValue(...values: Array<number | undefined>) {
+  return values.find((value) => typeof value === "number" && Number.isFinite(value));
+}
+
+function getUnreadOrdersCount(summary: OrdersSummaryResponse, hasSince: boolean) {
+  const count = getNumberValue(
+    summary.data?.since_count,
+    summary.data?.unread_count,
+    summary.data?.unread_orders,
+    summary.data?.unreadOrders,
+    summary.unread_count,
+    summary.unreadOrders,
+    summary.data?.count,
+    summary.count,
+    hasSince ? undefined : summary.data?.total_orders,
+    hasSince ? undefined : summary.data?.totalOrders,
+    hasSince ? undefined : summary.total_orders,
+    hasSince ? undefined : summary.totalOrders
+  );
+
+  return count ?? 0;
+}
+
 export default function Sidebar({ userEmail }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -75,27 +115,47 @@ export default function Sidebar({ userEmail }: SidebarProps) {
 
   useEffect(() => {
     let active = true;
+    const isOrdersPage = pathname?.startsWith("/admin/orders") ?? false;
 
     const syncUnreadOrders = async () => {
-      if (pathname?.startsWith("/admin/orders")) {
-        markOrdersAsSeen();
+      if (!active) {
+        return;
+      }
 
-        if (active) {
-          setUnreadOrdersCount(0);
+      if (isOrdersPage) {
+        if (typeof document !== "undefined" && document.visibilityState === "visible") {
+          markOrdersAsSeen();
+
+          if (active) {
+            setUnreadOrdersCount(0);
+          }
         }
 
         return;
       }
 
-      try {
-        const json = await adminFetch<{ success: boolean; data?: { created_at?: string | null }[] }>("/api/orders");
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
 
-        if (!json.success || !active) {
+      const lastSeenAt = getLastSeenOrdersAt();
+      const searchParams = new URLSearchParams();
+
+      if (lastSeenAt) {
+        searchParams.set("since", lastSeenAt);
+      }
+
+      const query = searchParams.toString();
+      const path = query ? `/api/orders/summary?${query}` : "/api/orders/summary";
+
+      try {
+        const json = await adminFetch<OrdersSummaryResponse>(path);
+
+        if (!active || json.success === false) {
           return;
         }
 
-        const unreadCount = countUnreadOrders(json.data || [], getLastSeenOrdersAt());
-        setUnreadOrdersCount(unreadCount);
+        setUnreadOrdersCount(getUnreadOrdersCount(json, Boolean(lastSeenAt)));
       } catch (error) {
         console.error("Failed to load unread order count:", error);
       }
@@ -103,13 +163,41 @@ export default function Sidebar({ userEmail }: SidebarProps) {
 
     void syncUnreadOrders();
 
+    if (isOrdersPage) {
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === "visible") {
+          void syncUnreadOrders();
+        }
+      };
+
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+
+      return () => {
+        active = false;
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      };
+    }
+
     const timer = window.setInterval(() => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
       void syncUnreadOrders();
     }, ADMIN_ORDER_POLL_INTERVAL_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void syncUnreadOrders();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       active = false;
       window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [pathname]);
 
@@ -205,9 +293,10 @@ export default function Sidebar({ userEmail }: SidebarProps) {
                   (item.href !== "/admin" && pathname?.startsWith(item.href));
 
                 return (
-                  <Link
+                  <AdminRouteLink
                     key={item.href}
                     href={item.href}
+                    pendingClassName="sidebar-link--pending"
                     className={`sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium group ${
                       isActive
                         ? "bg-brand-600/15 text-brand-400 border-r-0"
@@ -232,7 +321,7 @@ export default function Sidebar({ userEmail }: SidebarProps) {
                         )}
                       </>
                     )}
-                  </Link>
+                  </AdminRouteLink>
                 );
               })}
             </div>

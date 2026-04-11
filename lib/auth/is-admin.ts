@@ -3,6 +3,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 interface AdminProbeResult {
   isAdmin: boolean;
   reason?: string;
+  shouldSignOut?: boolean;
 }
 
 function getBearerToken(accessToken?: string | null) {
@@ -21,7 +22,7 @@ export async function verifyAdminAccess(accessToken?: string | null): Promise<Ad
   }
 
   try {
-    const response = await fetch(`${API_URL}/api/dashboard`, {
+    const response = await fetch(`${API_URL}/api/orders/summary`, {
       headers: {
         Authorization: authorization,
       },
@@ -41,6 +42,7 @@ export async function verifyAdminAccess(accessToken?: string | null): Promise<Ad
       return {
         isAdmin: false,
         reason: payload?.error || "Akun ini tidak memiliki akses admin.",
+        shouldSignOut: true,
       };
     }
 
@@ -48,17 +50,20 @@ export async function verifyAdminAccess(accessToken?: string | null): Promise<Ad
       return {
         isAdmin: false,
         reason: payload?.error || "Sesi admin berakhir. Silakan login kembali.",
+        shouldSignOut: true,
       };
     }
 
     return {
       isAdmin: false,
       reason: payload?.error || "Gagal memverifikasi akses admin.",
+      shouldSignOut: false,
     };
   } catch {
     return {
       isAdmin: false,
       reason: "Gagal memverifikasi akses admin.",
+      shouldSignOut: false,
     };
   }
 }

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+import { adminFetch } from "@/lib/api/adminFetch";
 
 interface Product {
   id: string;
@@ -69,14 +68,9 @@ export default function AccountsPage() {
     try {
       setInventoryError("");
 
-      const [productsRes, accountsRes] = await Promise.all([
-        fetch(`${API_URL}/api/products`),
-        fetch(`${API_URL}/api/product-accounts`),
-      ]);
-
       const [productsJson, accountsJson] = await Promise.all([
-        productsRes.json(),
-        accountsRes.json(),
+        adminFetch<{ success: boolean; data: Product[] }>("/api/products"),
+        adminFetch<{ success: boolean; data: ProductAccount[]; error?: string }>("/api/product-accounts"),
       ]);
 
       if (productsJson.success) {
@@ -150,15 +144,10 @@ export default function AccountsPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/product-accounts`, {
+      const json = await adminFetch<{ success: boolean; error?: string }>("/api/product-accounts", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(form),
       });
-
-      const json = await response.json();
 
       if (!json.success) {
         alert(json.error || "Gagal menambahkan akun.");
@@ -197,18 +186,13 @@ export default function AccountsPage() {
     setIsUpdating(true);
 
     try {
-      const response = await fetch(
-        `${API_URL}/api/product-accounts/${editingAccount.id}`,
+      const json = await adminFetch<{ success: boolean; error?: string }>(
+        `/api/product-accounts/${editingAccount.id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify(form),
         }
       );
-
-      const json = await response.json();
 
       if (!json.success) {
         alert(json.error || "Gagal memperbarui akun.");
@@ -237,14 +221,12 @@ export default function AccountsPage() {
     }
 
     try {
-      const response = await fetch(
-        `${API_URL}/api/product-accounts/${account.id}`,
+      const json = await adminFetch<{ success: boolean; error?: string }>(
+        `/api/product-accounts/${account.id}`,
         {
           method: "DELETE",
         }
       );
-
-      const json = await response.json();
 
       if (!json.success) {
         alert(json.error || "Gagal menghapus akun.");

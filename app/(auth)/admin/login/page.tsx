@@ -10,56 +10,79 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const [initialFeedback] = useState(() => consumeAuthFeedback());
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState(
+    initialFeedback && (initialFeedback.type === "error" || initialFeedback.type === "warning")
+      ? initialFeedback.message
+      : ""
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   useEffect(() => {
-    const feedback = consumeAuthFeedback();
-    if (feedback) {
-      toast[feedback.type](feedback.title, { description: feedback.message });
-      if (feedback.type === "error" || feedback.type === "warning") {
-        setErrorMessage(feedback.message);
-      }
+    let isMounted = true;
+
+    if (initialFeedback) {
+      toast[initialFeedback.type](initialFeedback.title, {
+        description: initialFeedback.message,
+      });
     }
 
     async function checkSession() {
       const supabase = createClient();
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
 
-      if (!user) {
+      if (!isMounted) {
+        return;
+      }
+
+      if (error || !session?.access_token) {
         setIsCheckingSession(false);
         return;
       }
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const adminCheck = await verifyAdminAccess(session?.access_token);
+      const adminCheck = await verifyAdminAccess(session.access_token);
 
-      if (adminCheck.isAdmin) {
-        router.replace("/admin");
-        router.refresh();
+      if (!isMounted) {
         return;
       }
 
-      await supabase.auth.signOut();
-      if (adminCheck.reason) {
+      if (adminCheck.isAdmin) {
+        router.replace("/admin");
+        return;
+      }
+
+      const message = adminCheck.reason || "Akun ini tidak memiliki akses admin.";
+
+      if (adminCheck.shouldSignOut) {
+        await supabase.auth.signOut();
+
+        if (!isMounted) {
+          return;
+        }
+
         setAuthFeedback({
           type: "error",
           title: "Akses admin ditolak",
-          message: adminCheck.reason,
+          message,
         });
       }
+
+      setErrorMessage(message);
       setIsCheckingSession(false);
     }
 
-    checkSession();
-  }, [router]);
+    void checkSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [initialFeedback, router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,7 +90,7 @@ export default function AdminLoginPage() {
     setIsSubmitting(true);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -79,14 +102,20 @@ export default function AdminLoginPage() {
       return;
     }
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    const session =
+      data.session ??
+      (
+        await supabase.auth.getSession()
+      ).data.session;
     const adminCheck = await verifyAdminAccess(session?.access_token);
 
     if (!adminCheck.isAdmin) {
       const message = adminCheck.reason || "Akun ini tidak memiliki akses admin.";
-      await supabase.auth.signOut();
+
+      if (adminCheck.shouldSignOut) {
+        await supabase.auth.signOut();
+      }
+
       setErrorMessage(message);
       toast.error("Akses admin ditolak", { description: message });
       setIsSubmitting(false);
@@ -96,8 +125,7 @@ export default function AdminLoginPage() {
     toast.success("Login berhasil", {
       description: "Selamat datang kembali di area admin.",
     });
-    router.push("/admin");
-    router.refresh();
+    router.replace("/admin");
   }
 
   if (isCheckingSession) {

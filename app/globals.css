@@ -247,8 +247,54 @@ body {
 .table-row { transition: background 0.15s ease; }
 .table-row:hover { background: #f8fafc; }
 
-.sidebar-link { transition: all 0.2s ease; }
+.sidebar-link {
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
 .sidebar-link:hover { background: rgba(139, 92, 246, 0.08); }
+.sidebar-link--pending,
+.sidebar-link[data-admin-pending="true"] {
+  background: rgba(139, 92, 246, 0.12);
+  transform: translateX(2px);
+  box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.18);
+}
+
+.admin-route-link {
+  transition: transform 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+.admin-route-link--pending,
+.admin-route-link[data-admin-pending="true"] {
+  transform: translateY(-1px);
+  opacity: 0.92;
+  filter: saturate(1.05);
+}
+.admin-route-link--alert.admin-route-link--pending,
+.admin-route-link--alert[data-admin-pending="true"] {
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.12);
+}
+
+.admin-top-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 80;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.admin-top-progress--visible {
+  opacity: 1;
+}
+.admin-top-progress__bar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, #7c3aed 0%, #8b5cf6 55%, #c4b5fd 100%);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.45);
+  transition: transform 0.18s ease-out;
+}
 
 .badge-success { background: #ecfdf5; color: #059669; }
 .badge-warning { background: #fffbeb; color: #d97706; }
