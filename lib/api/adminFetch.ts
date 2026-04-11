@@ -5,6 +5,18 @@ import { toast } from "sonner";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 const LOGIN_PATH = "/admin/login";
 
+type ErrorPayload = {
+  error?: string;
+};
+
+function getErrorPayload(payload: unknown): ErrorPayload | null {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  return "error" in payload ? (payload as ErrorPayload) : null;
+}
+
 function redirectToLogin(feedback: AuthFeedback) {
   setAuthFeedback(feedback);
 
@@ -13,7 +25,7 @@ function redirectToLogin(feedback: AuthFeedback) {
   }
 }
 
-function getErrorMessage(payload: any, fallback: string) {
+function getErrorMessage(payload: ErrorPayload | null, fallback: string) {
   return payload?.error || fallback;
 }
 
@@ -25,7 +37,7 @@ export function showSuccessToast(title: string, message: string) {
   toast.success(title, { description: message });
 }
 
-export async function adminFetch<T = any>(
+export async function adminFetch<T>(
   path: string,
   init: RequestInit = {}
 ): Promise<T> {
@@ -61,12 +73,13 @@ export async function adminFetch<T = any>(
   });
 
   const contentType = response.headers.get("content-type") || "";
-  const payload = contentType.includes("application/json")
+  const payload: T | ErrorPayload | null = contentType.includes("application/json")
     ? await response.json()
     : null;
+  const errorPayload = getErrorPayload(payload);
 
   if (response.status === 401) {
-    const message = getErrorMessage(payload, "Sesi admin berakhir. Silakan login kembali.");
+    const message = getErrorMessage(errorPayload, "Sesi admin berakhir. Silakan login kembali.");
     await supabase.auth.signOut();
     redirectToLogin({
       type: "warning",
@@ -77,7 +90,7 @@ export async function adminFetch<T = any>(
   }
 
   if (response.status === 403) {
-    const message = getErrorMessage(payload, "Akun ini tidak memiliki akses admin.");
+    const message = getErrorMessage(errorPayload, "Akun ini tidak memiliki akses admin.");
     await supabase.auth.signOut();
     redirectToLogin({
       type: "error",
@@ -88,7 +101,7 @@ export async function adminFetch<T = any>(
   }
 
   if (!response.ok) {
-    const message = getErrorMessage(payload, "Permintaan admin gagal diproses.");
+    const message = getErrorMessage(errorPayload, "Permintaan admin gagal diproses.");
     showErrorToast("Permintaan gagal", message);
     throw new Error(message);
   }

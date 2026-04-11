@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { adminFetch, showSuccessToast } from "@/lib/api/adminFetch";
 import {
   ADMIN_ORDER_POLL_INTERVAL_MS,
@@ -44,12 +44,18 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [retryingOrderId, setRetryingOrderId] = useState<string | null>(null);
 
-  const fetchOrders = async () => {
+  const isPageVisible = () => document.visibilityState === "visible";
+
+  const fetchOrders = useCallback(async () => {
     try {
       const json = await adminFetch<{ success: boolean; data: Order[] }>("/api/orders");
       if (json.success) {
         setOrders(json.data);
-        markOrdersAsSeen();
+
+        if (isPageVisible()) {
+          markOrdersAsSeen();
+        }
+
         return json.data;
       }
     } catch (err) {
@@ -60,7 +66,7 @@ export default function OrdersPage() {
     }
 
     return [] as Order[];
-  };
+  }, []);
 
   const fetchOrderDetail = async (id: string) => {
     try {
@@ -75,14 +81,28 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
-    void fetchOrders();
+    const fetchVisibleOrders = () => {
+      if (!isPageVisible()) {
+        return;
+      }
 
-    const timer = window.setInterval(() => {
       void fetchOrders();
-    }, ADMIN_ORDER_POLL_INTERVAL_MS);
+    };
 
-    return () => window.clearInterval(timer);
-  }, []);
+    fetchVisibleOrders();
+
+    const timer = window.setInterval(fetchVisibleOrders, ADMIN_ORDER_POLL_INTERVAL_MS);
+    const handleVisibilityChange = () => {
+      fetchVisibleOrders();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [fetchOrders]);
 
   const handleOpenDetail = (order: Order) => {
     setSelectedOrder(order);
@@ -166,6 +186,9 @@ export default function OrdersPage() {
     order.payment_status === "completed" &&
     order.fulfillment_email_status !== "sent" &&
     order.fulfillment_status !== "processing";
+
+  const canCompleteOrder = (order: Order) =>
+    order.status === "paid" && order.payment_status === "completed";
 
   const tabs = [
     { id: "all", label: "Semua", count: orders.length },
@@ -351,7 +374,7 @@ export default function OrdersPage() {
                           >
                             <i className="ph-duotone ph-eye text-base"></i>
                           </button>
-                          {(order.status === "paid" || order.status === "pending") && (
+                          {canCompleteOrder(order) && (
                             <button
                               onClick={() => handleUpdateStatus(order.id, "completed")}
                               className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
@@ -462,7 +485,7 @@ export default function OrdersPage() {
                   )}
                 </button>
               )}
-              {(selectedOrder.status === "paid" || selectedOrder.status === "pending") && (
+              {canCompleteOrder(selectedOrder) && (
                 <button
                   onClick={() => handleUpdateStatus(selectedOrder.id, "completed")}
                   className="flex-1 btn-primary py-3 text-sm font-semibold text-white rounded-xl flex items-center justify-center gap-2"

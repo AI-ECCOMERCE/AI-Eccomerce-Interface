@@ -1,56 +1,109 @@
-"use client";
+import { redirect } from "next/navigation";
+import AdminRouteLink from "@/app/components/admin/AdminRouteLink";
+import { createClient } from "@/lib/supabase/server";
 
-import { useState, useEffect } from "react";
-import { adminFetch } from "@/lib/api/adminFetch";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-interface DashboardData {
-  stats: {
-    total_revenue: number;
-    total_orders: number;
-    unique_customers: number;
-    active_products: number;
-    pending_orders: number;
-  };
-  recent_orders: any[];
-  top_products: any[];
+interface DashboardStats {
+  total_revenue: number;
+  total_orders: number;
+  unique_customers: number;
+  active_products: number;
+  pending_orders: number;
 }
 
-export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [loading, setLoading] = useState(true);
+interface RecentOrder {
+  id: string;
+  order_id: string;
+  customer_name: string;
+  customer_email: string;
+  total_price: number;
+  status: string;
+}
 
-  useEffect(() => {
-    async function fetchDashboard() {
-      try {
-        const json = await adminFetch<{ success: boolean; data: DashboardData }>("/api/dashboard");
-        if (json.success) setData(json.data);
-      } catch (err) {
-        console.error("Failed to fetch dashboard:", err);
-        setErrorMessage(err instanceof Error ? err.message : "Gagal memuat dashboard admin.");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchDashboard();
-  }, []);
+interface TopProduct {
+  name: string;
+  sold: number;
+  gradient: string;
+  icon: string;
+}
 
-  const formatCurrency = (val: number) => {
-    if (val >= 1000000) return `Rp ${(val / 1000000).toFixed(1)}M`;
-    if (val >= 1000) return `Rp ${(val / 1000).toFixed(0)}K`;
-    return `Rp ${val.toLocaleString("id-ID")}`;
-  };
+interface DashboardData {
+  stats: DashboardStats;
+  recent_orders: RecentOrder[];
+  top_products: TopProduct[];
+}
 
-  if (loading) {
-    return (
-      <div className="p-8 flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm text-slate-400">Memuat dashboard...</p>
-        </div>
-      </div>
-    );
+interface DashboardResponse {
+  success?: boolean;
+  data?: DashboardData;
+  error?: string;
+}
+
+const orderStatusLabelMap: Record<string, string> = {
+  completed: "Selesai",
+  paid: "Dibayar",
+  pending: "Menunggu",
+  processing: "Diproses",
+  cancelled: "Dibatalkan",
+};
+
+function formatCurrency(value: number) {
+  if (value >= 1000000) return `Rp ${(value / 1000000).toFixed(1)}M`;
+  if (value >= 1000) return `Rp ${(value / 1000).toFixed(0)}K`;
+  return `Rp ${value.toLocaleString("id-ID")}`;
+}
+
+async function getDashboardData(): Promise<{ data: DashboardData | null; errorMessage: string }> {
+  const supabase = await createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const token = session?.access_token;
+
+  if (!token) {
+    redirect("/admin/login");
   }
+
+  try {
+    const response = await fetch(`${API_URL}/api/dashboard`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    });
+
+    const contentType = response.headers.get("content-type") || "";
+    const payload = contentType.includes("application/json")
+      ? ((await response.json()) as DashboardResponse)
+      : null;
+
+    if (response.status === 401 || response.status === 403) {
+      redirect("/admin/login");
+    }
+
+    if (!response.ok || !payload?.success || !payload.data) {
+      return {
+        data: null,
+        errorMessage: payload?.error || "Gagal memuat dashboard admin.",
+      };
+    }
+
+    return {
+      data: payload.data,
+      errorMessage: "",
+    };
+  } catch {
+    return {
+      data: null,
+      errorMessage: "Gagal memuat dashboard admin.",
+    };
+  }
+}
+
+export default async function DashboardPage() {
+  const { data, errorMessage } = await getDashboardData();
 
   if (!data) {
     return (
@@ -61,29 +114,55 @@ export default function DashboardPage() {
   }
 
   const stats = [
-    { label: "Total Pendapatan", value: formatCurrency(data.stats.total_revenue), icon: "ph-currency-circle-dollar", iconBg: "bg-green-100", iconColor: "text-green-600" },
-    { label: "Total Pesanan", value: data.stats.total_orders.toLocaleString("id-ID"), icon: "ph-shopping-bag", iconBg: "bg-brand-100", iconColor: "text-brand-600" },
-    { label: "Pelanggan", value: data.stats.unique_customers.toLocaleString("id-ID"), icon: "ph-users", iconBg: "bg-blue-100", iconColor: "text-blue-600" },
-    { label: "Produk Aktif", value: data.stats.active_products.toString(), icon: "ph-package", iconBg: "bg-amber-100", iconColor: "text-amber-600" },
+    {
+      label: "Total Pendapatan",
+      value: formatCurrency(data.stats.total_revenue),
+      icon: "ph-currency-circle-dollar",
+      iconBg: "bg-green-100",
+      iconColor: "text-green-600",
+    },
+    {
+      label: "Total Pesanan",
+      value: data.stats.total_orders.toLocaleString("id-ID"),
+      icon: "ph-shopping-bag",
+      iconBg: "bg-brand-100",
+      iconColor: "text-brand-600",
+    },
+    {
+      label: "Pelanggan",
+      value: data.stats.unique_customers.toLocaleString("id-ID"),
+      icon: "ph-users",
+      iconBg: "bg-blue-100",
+      iconColor: "text-blue-600",
+    },
+    {
+      label: "Produk Aktif",
+      value: data.stats.active_products.toString(),
+      icon: "ph-package",
+      iconBg: "bg-amber-100",
+      iconColor: "text-amber-600",
+    },
   ];
 
   return (
     <div className="p-6 lg:p-8">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
           <h1 className="font-display text-2xl lg:text-3xl font-extrabold text-slate-900">Dashboard</h1>
           <p className="text-sm text-slate-500 mt-1">Selamat datang kembali, Admin! Berikut ringkasan bisnismu.</p>
         </div>
         {data.stats.pending_orders > 0 && (
-          <a href="/admin/orders" className="px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl text-sm font-semibold text-red-600 flex items-center gap-2 hover:bg-red-100 transition-all">
+          <AdminRouteLink
+            href="/admin/orders"
+            pendingClassName="admin-route-link--pending"
+            className="admin-route-link admin-route-link--alert px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl text-sm font-semibold text-red-600 flex items-center gap-2 hover:bg-red-100 transition-all"
+          >
             <i className="ph-duotone ph-warning-circle text-lg"></i>
             {data.stats.pending_orders} pesanan perlu diproses
-          </a>
+          </AdminRouteLink>
         )}
       </div>
 
-      {/* Stat Cards */}
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
         {stats.map((stat) => (
           <div key={stat.label} className="stat-card bg-white rounded-2xl border border-slate-100 p-5">
@@ -99,16 +178,19 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid xl:grid-cols-5 gap-6">
-        {/* Recent Orders */}
         <div className="xl:col-span-3 bg-white rounded-2xl border border-slate-100 overflow-hidden">
           <div className="flex items-center justify-between p-5 border-b border-slate-100">
             <div>
               <h3 className="font-display font-bold text-lg text-slate-900">Pesanan Terbaru</h3>
               <p className="text-xs text-slate-400 mt-0.5">{data.recent_orders.length} pesanan terakhir</p>
             </div>
-            <a href="/admin/orders" className="text-sm font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1 transition-colors">
+            <AdminRouteLink
+              href="/admin/orders"
+              pendingClassName="admin-route-link--pending"
+              className="admin-route-link text-sm font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1 transition-colors"
+            >
               Lihat Semua <i className="ph-bold ph-arrow-right text-xs"></i>
-            </a>
+            </AdminRouteLink>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -122,9 +204,13 @@ export default function DashboardPage() {
               </thead>
               <tbody>
                 {data.recent_orders.length === 0 ? (
-                  <tr><td colSpan={4} className="px-5 py-10 text-center text-sm text-slate-400">Belum ada pesanan</td></tr>
+                  <tr>
+                    <td colSpan={4} className="px-5 py-10 text-center text-sm text-slate-400">
+                      Belum ada pesanan
+                    </td>
+                  </tr>
                 ) : (
-                  data.recent_orders.map((order: any) => (
+                  data.recent_orders.map((order) => (
                     <tr key={order.id} className="table-row border-b border-slate-50 last:border-0">
                       <td className="px-5 py-3.5 text-sm font-mono font-bold text-brand-600">{order.order_id}</td>
                       <td className="px-5 py-3.5">
@@ -134,12 +220,20 @@ export default function DashboardPage() {
                       <td className="px-5 py-3.5 text-sm font-bold text-slate-900">Rp {order.total_price?.toLocaleString("id-ID")}</td>
                       <td className="px-5 py-3.5">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold ${
-                          order.status === "completed" || order.status === "paid" ? "badge-success" : order.status === "cancelled" ? "badge-danger" : "badge-warning"
+                          order.status === "completed" || order.status === "paid"
+                            ? "badge-success"
+                            : order.status === "cancelled"
+                              ? "badge-danger"
+                              : "badge-warning"
                         }`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${
-                            order.status === "completed" || order.status === "paid" ? "bg-green-500" : order.status === "cancelled" ? "bg-red-500" : "bg-amber-500"
+                            order.status === "completed" || order.status === "paid"
+                              ? "bg-green-500"
+                              : order.status === "cancelled"
+                                ? "bg-red-500"
+                                : "bg-amber-500"
                           }`}></span>
-                          {order.status === "completed" ? "Selesai" : order.status === "paid" ? "Dibayar" : order.status === "pending" ? "Menunggu" : order.status === "processing" ? "Diproses" : "Dibatalkan"}
+                          {orderStatusLabelMap[order.status] || order.status}
                         </span>
                       </td>
                     </tr>
@@ -150,7 +244,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Top Products */}
         <div className="xl:col-span-2 bg-white rounded-2xl border border-slate-100 overflow-hidden">
           <div className="flex items-center justify-between p-5 border-b border-slate-100">
             <div>
@@ -162,7 +255,7 @@ export default function DashboardPage() {
             {data.top_products.length === 0 ? (
               <p className="text-sm text-slate-400 text-center py-8">Belum ada data</p>
             ) : (
-              data.top_products.map((product: any) => {
+              data.top_products.map((product) => {
                 const maxSold = data.top_products[0]?.sold || 1;
                 const percentage = Math.round((product.sold / maxSold) * 100);
                 return (
