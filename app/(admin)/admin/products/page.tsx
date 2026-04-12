@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { adminFetch, showSuccessToast } from "@/lib/api/adminFetch";
+import { brandIconMap } from "../../../components/BrandIcons";
+
+interface Variant { id?: string; name: string; price: number; original_price: number; stock: number; }
 
 interface Product {
   id: string;
@@ -16,7 +19,19 @@ interface Product {
   gradient: string;
   description?: string;
   categories?: { name: string };
+  variants?: Variant[];
 }
+
+const PREDEFINED_LOGOS = [
+  { id: "openai-chatgpt", name: "ChatGPT" },
+  { id: "google-gemini", name: "Gemini" },
+  { id: "canva", name: "Canva" },
+  { id: "anthropic-claude", name: "Claude" },
+  { id: "midjourney", name: "Midjourney" },
+  { id: "github-copilot", name: "GitHub Copilot" },
+  { id: "notion", name: "Notion" },
+  { id: "grammarly", name: "Grammarly" },
+];
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -26,7 +41,9 @@ export default function ProductsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newProduct, setNewProduct] = useState({ name: "", category_slug: "ai-chat", price: 0, original_price: 0, stock: 0, description: "" });
+  const [newProduct, setNewProduct] = useState({ name: "", category_slug: "ai-chat", price: 0, original_price: 0, stock: 0, description: "", icon: "ph-package" });
+  const [hasVariants, setHasVariants] = useState(false);
+  const [variants, setVariants] = useState<Variant[]>([{ name: "1 Bulan", price: 0, original_price: 0, stock: 0 }]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
@@ -49,14 +66,22 @@ export default function ProductsPage() {
   const handleAddProduct = async () => {
     setIsSubmitting(true);
     try {
+      const payload = {
+        ...newProduct,
+        price: hasVariants && variants.length > 0 ? variants[0].price : newProduct.price,
+        stock: hasVariants ? variants.reduce((acc, v) => acc + v.stock, 0) : newProduct.stock,
+        variants: hasVariants ? variants : undefined
+      };
       const json = await adminFetch<{ success: boolean; data: Product }>("/api/products", {
         method: "POST",
-        body: JSON.stringify(newProduct),
+        body: JSON.stringify(payload),
       });
       if (json.success) {
         showSuccessToast("Produk ditambahkan", "Produk baru berhasil disimpan.");
         setShowAddModal(false);
-        setNewProduct({ name: "", category_slug: "ai-chat", price: 0, original_price: 0, stock: 0, description: "" });
+        setNewProduct({ name: "", category_slug: "ai-chat", price: 0, original_price: 0, stock: 0, description: "", icon: "ph-package" });
+        setHasVariants(false);
+        setVariants([{ name: "1 Bulan", price: 0, original_price: 0, stock: 0 }]);
         fetchProducts();
       }
     } catch (err) {
@@ -69,6 +94,9 @@ export default function ProductsPage() {
 
   const handleEditProductClick = (product: Product) => {
     setEditingProduct(product);
+    const prodVariants = product.variants && product.variants.length > 0 ? product.variants : [{ name: "1 Bulan", price: 0, original_price: 0, stock: 0 }];
+    setVariants(prodVariants);
+    setHasVariants(product.variants && product.variants.length > 0 ? true : false);
     setShowEditModal(true);
   };
 
@@ -76,9 +104,15 @@ export default function ProductsPage() {
     if (!editingProduct) return;
     setIsUpdating(true);
     try {
+      const payload = {
+        ...editingProduct,
+        price: hasVariants && variants.length > 0 ? variants[0].price : editingProduct.price,
+        stock: hasVariants ? variants.reduce((acc, v) => acc + v.stock, 0) : editingProduct.stock,
+        variants: hasVariants ? variants : []
+      };
       const json = await adminFetch<{ success: boolean; data: Product }>(`/api/products/${editingProduct.id}`, {
         method: "PUT",
-        body: JSON.stringify(editingProduct),
+        body: JSON.stringify(payload),
       });
       if (json.success) {
         showSuccessToast("Produk diperbarui", "Perubahan produk berhasil disimpan.");
@@ -195,7 +229,16 @@ export default function ProductsPage() {
                   <tr key={product.id} className="table-row border-b border-slate-50 last:border-0">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${product.gradient} flex items-center justify-center flex-shrink-0`}><i className={`ph-duotone ${product.icon} text-lg text-white`}></i></div>
+                        <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center p-1.5 shadow-sm flex-shrink-0">
+                          {brandIconMap[product.icon] || brandIconMap[product.name] ? (
+                            (() => {
+                              const IconComponent = brandIconMap[product.icon] || brandIconMap[product.name];
+                              return <IconComponent className="w-full h-full object-contain" />;
+                            })()
+                          ) : (
+                            <i className={`ph-duotone ${product.icon} text-xl text-slate-400`}></i>
+                          )}
+                        </div>
                         <p className="text-sm font-semibold text-slate-900">{product.name}</p>
                       </div>
                     </td>
@@ -236,7 +279,7 @@ export default function ProductsPage() {
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAddModal(false)}></div>
-          <div className="relative bg-white rounded-3xl shadow-2xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white rounded-3xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
               <h3 className="font-display font-bold text-lg text-slate-900">Tambah Produk Baru</h3>
               <button onClick={() => setShowAddModal(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition-all"><i className="ph-duotone ph-x text-xl"></i></button>
@@ -257,20 +300,71 @@ export default function ProductsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Stok</label>
-                  <input type="number" value={newProduct.stock} onChange={(e) => setNewProduct({...newProduct, stock: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Logo Brand</label>
+                  <select value={newProduct.icon} onChange={(e) => setNewProduct({...newProduct, icon: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 bg-white">
+                    <option value="ph-package">Default (📦)</option>
+                    {PREDEFINED_LOGOS.map((logo) => (
+                      <option key={logo.id} value={logo.id}>{logo.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Harga Asli (Rp)</label>
-                  <input type="number" value={newProduct.original_price} onChange={(e) => setNewProduct({...newProduct, original_price: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Harga Jual (Rp)</label>
-                  <input type="number" value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
-                </div>
+
+              <div className="flex items-center gap-3 py-2">
+                <input type="checkbox" id="hasVariants" checked={hasVariants} onChange={(e) => setHasVariants(e.target.checked)} className="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500" />
+                <label htmlFor="hasVariants" className="text-sm font-semibold text-slate-700 cursor-pointer">Produk ini memiliki beberapa varian (Sub Produk)</label>
               </div>
+
+              {!hasVariants ? (
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Stok</label>
+                    <input type="number" value={newProduct.stock} onChange={(e) => setNewProduct({...newProduct, stock: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Harga Asli</label>
+                    <input type="number" value={newProduct.original_price} onChange={(e) => setNewProduct({...newProduct, original_price: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Harga Jual</label>
+                    <input type="number" value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-bold text-slate-700">Daftar Varian</label>
+                    <button onClick={() => setVariants([...variants, { name: "Varian Baru", price: 0, original_price: 0, stock: 0 }])} className="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
+                      <i className="ph-duotone ph-plus"></i> Tambah Varian
+                    </button>
+                  </div>
+                  {variants.map((variant, idx) => (
+                    <div key={idx} className="grid grid-cols-12 gap-3 items-end p-3 bg-white rounded-lg border border-slate-200">
+                      <div className="col-span-4">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1">Nama (cth: 1 Bulan)</label>
+                        <input type="text" value={variant.name} onChange={(e) => { const newV = [...variants]; newV[idx].name = e.target.value; setVariants(newV); }} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-brand-400" />
+                      </div>
+                      <div className="col-span-3">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1">Harga Jual</label>
+                        <input type="number" value={variant.price} onChange={(e) => { const newV = [...variants]; newV[idx].price = Number(e.target.value); setVariants(newV); }} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-brand-400" />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1">Coret</label>
+                        <input type="number" value={variant.original_price} onChange={(e) => { const newV = [...variants]; newV[idx].original_price = Number(e.target.value); setVariants(newV); }} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-brand-400" />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1">Stok</label>
+                        <input type="number" value={variant.stock} onChange={(e) => { const newV = [...variants]; newV[idx].stock = Number(e.target.value); setVariants(newV); }} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-brand-400 text-center" />
+                      </div>
+                      <div className="col-span-1 flex justify-center pb-1">
+                        <button onClick={() => { const newV = [...variants]; newV.splice(idx, 1); setVariants(newV); }} disabled={variants.length === 1} className="p-1.5 text-slate-400 hover:text-red-500 disabled:opacity-50">
+                          <i className="ph-duotone ph-trash text-base"></i>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Deskripsi</label>
                 <textarea rows={3} placeholder="Deskripsi singkat produk..." value={newProduct.description} onChange={(e) => setNewProduct({...newProduct, description: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 resize-none"></textarea>
@@ -293,7 +387,7 @@ export default function ProductsPage() {
       {showEditModal && editingProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowEditModal(false)}></div>
-          <div className="relative bg-white rounded-3xl shadow-2xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white rounded-3xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
               <h3 className="font-display font-bold text-lg text-slate-900">Edit Produk</h3>
               <button onClick={() => setShowEditModal(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition-all"><i className="ph-duotone ph-x text-xl"></i></button>
@@ -314,23 +408,19 @@ export default function ProductsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Stok</label>
-                  <input type="number" value={editingProduct.stock} onChange={(e) => setEditingProduct({...editingProduct, stock: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Logo Brand</label>
+                  <select value={editingProduct.icon} onChange={(e) => setEditingProduct({...editingProduct, icon: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 bg-white">
+                    <option value="ph-package">Default (📦)</option>
+                    {PREDEFINED_LOGOS.map((logo) => (
+                      <option key={logo.id} value={logo.id}>{logo.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
+              
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Harga Asli (Rp)</label>
-                  <input type="number" value={editingProduct.original_price} onChange={(e) => setEditingProduct({...editingProduct, original_price: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Harga Jual (Rp)</label>
-                  <input type="number" value={editingProduct.price} onChange={(e) => setEditingProduct({...editingProduct, price: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Status</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Status Produk</label>
                   <select value={editingProduct.status} onChange={(e) => setEditingProduct({...editingProduct, status: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 bg-white">
                     <option value="active">Aktif</option>
                     <option value="draft">Draft</option>
@@ -338,6 +428,62 @@ export default function ProductsPage() {
                   </select>
                 </div>
               </div>
+
+              <div className="flex items-center gap-3 py-2">
+                <input type="checkbox" id="editHasVariants" checked={hasVariants} onChange={(e) => setHasVariants(e.target.checked)} className="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500" />
+                <label htmlFor="editHasVariants" className="text-sm font-semibold text-slate-700 cursor-pointer">Produk ini memiliki beberapa varian (Sub Produk)</label>
+              </div>
+
+              {!hasVariants ? (
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Stok</label>
+                    <input type="number" value={editingProduct.stock} onChange={(e) => setEditingProduct({...editingProduct, stock: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Harga Asli</label>
+                    <input type="number" value={editingProduct.original_price} onChange={(e) => setEditingProduct({...editingProduct, original_price: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Harga Jual</label>
+                    <input type="number" value={editingProduct.price} onChange={(e) => setEditingProduct({...editingProduct, price: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-bold text-slate-700">Daftar Varian</label>
+                    <button onClick={() => setVariants([...variants, { name: "Varian Baru", price: 0, original_price: 0, stock: 0 }])} className="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
+                      <i className="ph-duotone ph-plus"></i> Tambah Varian
+                    </button>
+                  </div>
+                  {variants.map((variant, idx) => (
+                    <div key={idx} className="grid grid-cols-12 gap-3 items-end p-3 bg-white rounded-lg border border-slate-200">
+                      <div className="col-span-4">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1">Nama Varian</label>
+                        <input type="text" value={variant.name} onChange={(e) => { const newV = [...variants]; newV[idx].name = e.target.value; setVariants(newV); }} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-brand-400" />
+                      </div>
+                      <div className="col-span-3">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1">Harga Jual</label>
+                        <input type="number" value={variant.price} onChange={(e) => { const newV = [...variants]; newV[idx].price = Number(e.target.value); setVariants(newV); }} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-brand-400" />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1">Harga Coret</label>
+                        <input type="number" value={variant.original_price} onChange={(e) => { const newV = [...variants]; newV[idx].original_price = Number(e.target.value); setVariants(newV); }} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-brand-400" />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1">Stok</label>
+                        <input type="number" value={variant.stock} onChange={(e) => { const newV = [...variants]; newV[idx].stock = Number(e.target.value); setVariants(newV); }} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-brand-400 text-center" />
+                      </div>
+                      <div className="col-span-1 flex justify-center pb-1">
+                        <button onClick={() => { const newV = [...variants]; newV.splice(idx, 1); setVariants(newV); }} disabled={variants.length === 1} className="p-1.5 text-slate-400 hover:text-red-500 disabled:opacity-50">
+                          <i className="ph-duotone ph-trash text-base"></i>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-100">
               <button disabled={isUpdating} onClick={() => setShowEditModal(false)} className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50">Batal</button>

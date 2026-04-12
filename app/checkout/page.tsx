@@ -391,7 +391,7 @@ export default function CheckoutPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-green-800">
-                        Garansi Full Replace
+                        Garansi 7 Hari
                       </p>
                       <p className="text-xs text-green-600 mt-0.5 leading-relaxed">
                         Akun bermasalah? Langsung diganti baru tanpa biaya

@@ -6,6 +6,7 @@ import {
   ADMIN_ORDER_POLL_INTERVAL_MS,
   markOrdersAsSeen,
 } from "@/app/lib/adminOrders";
+import Pagination from "@/app/components/admin/Pagination";
 
 interface OrderItem {
   product_name: string;
@@ -39,6 +40,9 @@ type BadgeConfig = {
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -198,7 +202,20 @@ export default function OrdersPage() {
     { id: "completed", label: "Selesai", count: orders.filter((o) => o.status === "completed").length },
   ];
 
-  const filteredOrders = activeTab === "all" ? orders : orders.filter((o) => o.status === activeTab);
+  const searchFiltered = searchQuery.trim()
+    ? orders.filter((o) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          o.order_id?.toLowerCase().includes(q) ||
+          o.customer_name?.toLowerCase().includes(q) ||
+          o.customer_email?.toLowerCase().includes(q)
+        );
+      })
+    : orders;
+
+  const filteredOrders = activeTab === "all" ? searchFiltered : searchFiltered.filter((o) => o.status === activeTab);
+  const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
+  const paginatedOrders = filteredOrders.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const deliveryPendingCount = orders.filter(canRetryFulfillment).length;
   const deliveredCount = orders.filter(
@@ -278,27 +295,39 @@ export default function OrdersPage() {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-        <div className="flex items-center gap-1 p-4 border-b border-slate-100 overflow-x-auto">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
-                activeTab === tab.id
-                  ? "bg-brand-600 text-white shadow-sm"
-                  : "text-slate-500 hover:bg-slate-50"
-              }`}
-            >
-              {tab.label}
-              <span
-                className={`w-5 h-5 rounded-md text-[10px] font-bold flex items-center justify-center ${
-                  activeTab === tab.id ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-slate-100">
+          <div className="relative flex-1 max-w-md">
+            <i className="ph-duotone ph-magnifying-glass text-lg text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input
+              type="text"
+              placeholder="Cari Order ID, nama, atau email pelanggan..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 transition-all"
+            />
+          </div>
+          <div className="flex items-center gap-1 overflow-x-auto">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id); setCurrentPage(1); }}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? "bg-brand-600 text-white shadow-sm"
+                    : "text-slate-500 hover:bg-slate-50"
                 }`}
               >
-                {tab.count}
-              </span>
-            </button>
-          ))}
+                {tab.label}
+                <span
+                  className={`w-5 h-5 rounded-md text-[10px] font-bold flex items-center justify-center ${
+                    activeTab === tab.id ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -322,7 +351,7 @@ export default function OrdersPage() {
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((order) => {
+                paginatedOrders.map((order) => {
                   const orderStatus = orderStatusConfig[order.status] || orderStatusConfig.pending;
                   const deliveryStatus = getDeliveryStatus(order);
                   const itemNames = order.order_items?.map((item) => item.product_name).join(", ") || "-";
@@ -392,6 +421,13 @@ export default function OrdersPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalItems={filteredOrders.length}
+          itemsPerPage={ITEMS_PER_PAGE}
+        />
       </div>
 
       {selectedOrder && (

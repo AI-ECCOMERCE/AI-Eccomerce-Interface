@@ -4,11 +4,9 @@ import { useState, useCallback } from "react";
 import Navbar from "./components/Navbar";
 import HeroSection from "./components/HeroSection";
 import ProductsSection from "./components/ProductsSection";
-import BundlePromoSection from "./components/BundlePromoSection";
-import FeaturesSection from "./components/FeaturesSection";
+
 import HowToOrderSection from "./components/HowToOrderSection";
-import TestimonialsSection from "./components/TestimonialsSection";
-import FaqSection from "./components/FaqSection";
+
 import CtaSection from "./components/CtaSection";
 import Footer from "./components/Footer";
 import WhatsAppFloat from "./components/WhatsAppFloat";
@@ -55,11 +53,9 @@ export default function Home() {
       <Navbar cartCount={cartCount} onCartOpen={() => setCartOpen(true)} />
       <HeroSection />
       <ProductsSection onAddToCart={addToCart} />
-      <BundlePromoSection />
-      <FeaturesSection />
+
       <HowToOrderSection />
-      <TestimonialsSection />
-      <FaqSection />
+
       <CtaSection />
       <Footer />
       <WhatsAppFloat />

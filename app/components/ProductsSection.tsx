@@ -3,6 +3,15 @@
 import { useState, useEffect, useRef } from "react";
 import { brandIconMap } from "./BrandIcons";
 import { API_URL, CartItem } from "../lib/checkout";
+import ProductVariantModal from "./ProductVariantModal";
+
+interface Variant {
+  id: string;
+  name: string;
+  price: number;
+  original_price: number;
+  stock: number;
+}
 
 interface Product {
   id: string;
@@ -20,6 +29,7 @@ interface Product {
   shadow: string;
   stock: number;
   status: string;
+  variants?: Variant[];
 }
 
 interface Category {
@@ -39,6 +49,7 @@ export default function ProductsSection({ onAddToCart }: ProductsSectionProps) {
   ]);
   const [activeCategory, setActiveCategory] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [selectedProductForVariant, setSelectedProductForVariant] = useState<Product | null>(null);
   const sectionRef = useRef<HTMLDivElement>(null);
 
   // Fetch products & categories from API
@@ -112,21 +123,7 @@ export default function ProductsSection({ onAddToCart }: ProductsSectionProps) {
     return `-${Math.round((1 - price / original) * 100)}%`;
   };
 
-  const formatReviews = (count: number) => {
-    if (count >= 1000) return `(${(count / 1000).toFixed(1)}k reviews)`;
-    return `(${count} reviews)`;
-  };
 
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <span
-        key={i}
-        className={i < rating ? "star text-sm" : "text-slate-300 text-sm"}
-      >
-        ★
-      </span>
-    ));
-  };
 
   return (
     <section id="products" className="py-20 lg:py-28 bg-white relative" ref={sectionRef}>
@@ -169,7 +166,19 @@ export default function ProductsSection({ onAddToCart }: ProductsSectionProps) {
           /* Products Grid */
           <div id="products-grid" className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map((product) => {
-              const discount = formatDiscount(product.price, product.original_price);
+              const hasVariants = product.variants && product.variants.length > 0;
+              const displayPrice = hasVariants 
+                ? Math.min(...product.variants!.map(v => v.price)) 
+                : product.price;
+              const displayOriginalPrice = hasVariants
+                ? Math.max(...product.variants!.map(v => v.original_price))
+                : product.original_price;
+              const totalStock = hasVariants
+                ? product.variants!.reduce((acc, v) => acc + v.stock, 0)
+                : product.stock;
+
+              const discount = formatDiscount(displayPrice, displayOriginalPrice);
+
               return (
                 <div
                   key={product.id}
@@ -178,80 +187,67 @@ export default function ProductsSection({ onAddToCart }: ProductsSectionProps) {
                   style={{ animation: "scaleIn 0.4s ease-out forwards" }}
                 >
                   <div className="relative p-6 pb-0">
-                    {product.badge_text && (
-                      <div className="absolute top-4 right-4">
-                        <span
-                          className={`px-3 py-1 rounded-full ${product.badge_color || "bg-brand-50 text-brand-600"} text-xs font-bold`}
-                        >
-                          {product.badge_text}
-                        </span>
-                      </div>
-                    )}
-                    <div
-                      className={`product-icon w-16 h-16 rounded-2xl bg-gradient-to-br ${product.gradient} flex items-center justify-center shadow-lg ${product.shadow}`}
-                    >
-                      {brandIconMap[product.name] ? (
+                    <div className="product-icon w-16 h-16 rounded-2xl bg-white border border-slate-100 flex items-center justify-center shadow-sm p-3">
+                      {brandIconMap[product.icon] || brandIconMap[product.name] ? (
                         (() => {
-                          const IconComponent = brandIconMap[product.name];
-                          return <IconComponent className="w-8 h-8 text-white" />;
+                          const IconComponent = brandIconMap[product.icon] || brandIconMap[product.name];
+                          return <IconComponent className="w-full h-full object-contain" />;
                         })()
                       ) : (
-                        <i className={`ph-duotone ${product.icon} text-3xl text-white`}></i>
+                        <i className={`ph-duotone ${product.icon} text-3xl text-slate-400`}></i>
                       )}
                     </div>
                   </div>
                   <div className="p-6">
-                    <h3 className="font-display font-bold text-lg text-slate-900">
-                      {product.name}
-                    </h3>
-                    <p className="text-sm text-slate-500 mt-1 leading-relaxed">
-                      {product.description}
-                    </p>
-                    <div className="mt-4 flex items-center gap-2">
-                      <div className="flex gap-0.5">{renderStars(product.rating)}</div>
-                      <span className="text-xs text-slate-400">
-                        {formatReviews(product.reviews_count)}
+                    <h3 className="font-display font-bold text-lg text-slate-900">{product.name}</h3>
+                    <p className="text-sm text-slate-500 mt-1 leading-relaxed">{product.description}</p>
+
+                    <div className="mt-4 flex items-center">
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${totalStock > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                        {totalStock > 0 ? (hasVariants ? `${product.variants?.length} Pilihan Varian` : `Sisa Stok: ${totalStock}`) : "Stok Habis"}
                       </span>
                     </div>
+
                     <div className="mt-4 flex items-end justify-between">
                       <div>
-                        <span className="text-xs text-slate-400 line-through">
-                          Rp {product.original_price.toLocaleString("id-ID")}
-                        </span>
+                        {displayOriginalPrice > displayPrice && !hasVariants && (
+                          <span className="text-xs text-slate-400 line-through">
+                            Rp {displayOriginalPrice.toLocaleString("id-ID")}
+                          </span>
+                        )}
+                        {hasVariants && (
+                          <span className="text-xs font-semibold text-slate-500 mb-0.5 block">Mulai dari</span>
+                        )}
                         <div className="flex items-end gap-1">
                           <span className="text-2xl font-display font-extrabold text-slate-900">
-                            {formatPrice(product.price)}
+                            {formatPrice(displayPrice)}
                           </span>
-                          <span className="text-xs text-slate-400 mb-1">/bln</span>
                         </div>
                       </div>
-                      {discount && (
+                      {!hasVariants && discount && (
                         <span className="px-2.5 py-1 rounded-lg bg-red-50 text-red-500 text-xs font-bold">
                           {discount}
                         </span>
                       )}
                     </div>
+
                     <button
-                      onClick={() =>
-                        onAddToCart({
-                          id: product.id,
-                          name: product.name,
-                          price: product.price,
-                        })
-                      }
-                      disabled={product.stock <= 0}
-                      className="mt-4 w-full btn-primary py-3 text-sm font-semibold text-white rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => {
+                        if (hasVariants) {
+                           setSelectedProductForVariant(product);
+                        } else {
+                           onAddToCart({ id: product.id, name: product.name, price: product.price });
+                        }
+                      }}
+                      disabled={totalStock <= 0}
+                      className={`mt-4 w-full py-3 text-sm font-semibold text-white rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${hasVariants ? 'bg-slate-900 hover:bg-slate-800' : 'btn-primary'}`}
                     >
-                      {product.stock <= 0 ? (
-                        <>
-                          <i className="ph-duotone ph-x-circle text-base"></i>
-                          Stok Habis
-                        </>
+                      {totalStock <= 0 ? (
+                        <><i className="ph-duotone ph-x-circle text-base"></i> Stok Habis</>
+                      ) : hasVariants ? (
+                        <><i className="ph-duotone ph-list text-base"></i> Pilih Varian</>
                       ) : (
-                        <>
-                          <i className="ph-duotone ph-shopping-cart-simple text-base"></i>
-                          Tambah ke Keranjang
-                        </>
+                        <><i className="ph-duotone ph-shopping-cart-simple text-base"></i> Tambah ke Keranjang</>
                       )}
                     </button>
                   </div>
@@ -261,6 +257,15 @@ export default function ProductsSection({ onAddToCart }: ProductsSectionProps) {
           </div>
         )}
       </div>
+
+      {selectedProductForVariant && (
+        <ProductVariantModal
+           product={selectedProductForVariant}
+           isOpen={!!selectedProductForVariant}
+           onClose={() => setSelectedProductForVariant(null)}
+           onAddToCart={onAddToCart}
+        />
+      )}
     </section>
   );
 }

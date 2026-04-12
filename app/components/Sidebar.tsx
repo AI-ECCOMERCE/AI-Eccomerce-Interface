@@ -58,7 +58,6 @@ const menuItems: SidebarSection[] = [
       { label: "Produk", href: "/admin/products", icon: "ph-package" },
       { label: "Inventori Akun", href: "/admin/accounts", icon: "ph-key" },
       { label: "Kategori", href: "/admin/categories", icon: "ph-tag" },
-      { label: "Bundle", href: "/admin/bundles", icon: "ph-gift" },
     ],
   },
   {
