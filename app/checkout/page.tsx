@@ -113,7 +113,7 @@ export default function CheckoutPage() {
           <div className="flex items-center justify-between h-16 lg:h-20">
             <Link href="/" className="flex items-center gap-2">
               <Image
-                src="/ailogo.png"
+                src="/logo1.png"
                 alt="DesignAI Store"
                 width={120}
                 height={36}

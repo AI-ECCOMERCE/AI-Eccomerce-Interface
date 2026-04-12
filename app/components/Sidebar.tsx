@@ -254,7 +254,7 @@ export default function Sidebar({ userEmail }: SidebarProps) {
         {!collapsed && (
           <div className="flex items-center gap-2.5">
             <Image
-              src="/ailogo.png"
+              src="/logo1.png"
               alt="DesignAI"
               width={100}
               height={28}

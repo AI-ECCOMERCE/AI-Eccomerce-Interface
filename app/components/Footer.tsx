@@ -12,7 +12,7 @@ export default function Footer() {
           <div className="lg:col-span-1">
             <div className="flex items-center gap-2 mb-5">
               <Image
-                src="/ailogo.png"
+                src="/logo1.png"
                 alt="DesignAI Store Logo"
                 width={120}
                 height={32}

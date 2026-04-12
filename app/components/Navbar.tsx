@@ -40,7 +40,7 @@ export default function Navbar({ cartCount, onCartOpen }: NavbarProps) {
           {/* Logo */}
           <a href="#" id="logo" className="flex items-center gap-2 group">
             <Image
-              src="/ailogo.png"
+              src="/logo1.png"
               alt="DesignAI Store Logo"
               width={120}
               height={36}
