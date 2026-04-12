@@ -49,7 +49,7 @@ export default function HowToOrderSection() {
   }, []);
 
   return (
-    <section className="py-20 lg:py-28 bg-white" ref={sectionRef}>
+    <section id="how-to-order" className="py-20 lg:py-28 bg-white" ref={sectionRef}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-16 reveal">

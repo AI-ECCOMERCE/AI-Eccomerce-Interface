@@ -7,6 +7,7 @@ export default function WhatsAppFloat() {
       target="_blank"
       rel="noopener noreferrer"
       id="wa-float"
+      aria-label="Hubungi kami via WhatsApp"
       className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center shadow-lg shadow-green-500/30 hover:shadow-green-500/50 transition-all hover:scale-110 group"
     >
       <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">

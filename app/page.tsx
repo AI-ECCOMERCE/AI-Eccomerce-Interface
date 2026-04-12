@@ -51,12 +51,12 @@ export default function Home() {
   return (
     <>
       <Navbar cartCount={cartCount} onCartOpen={() => setCartOpen(true)} />
-      <HeroSection />
-      <ProductsSection onAddToCart={addToCart} />
-
-      <HowToOrderSection />
-
-      <CtaSection />
+      <main id="main-content" aria-label="Konten utama Poinstore">
+        <HeroSection />
+        <ProductsSection onAddToCart={addToCart} />
+        <HowToOrderSection />
+        <CtaSection />
+      </main>
       <Footer />
       <WhatsAppFloat />
       <CartModal

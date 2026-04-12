@@ -23,14 +23,13 @@ export default function Navbar({ cartCount, onCartOpen }: NavbarProps) {
   const navLinks = [
     { label: "Beranda", href: "#home" },
     { label: "Produk", href: "#products" },
-    { label: "Keunggulan", href: "#features" },
-    { label: "Testimoni", href: "#testimonials" },
-    { label: "FAQ", href: "#faq" },
+    { label: "Cara Order", href: "#how-to-order" },
   ];
 
   return (
     <nav
       id="navbar"
+      aria-label="Menu navigasi utama"
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled ? "navbar-scrolled" : ""
       }`}
@@ -41,7 +40,7 @@ export default function Navbar({ cartCount, onCartOpen }: NavbarProps) {
           <a href="#" id="logo" className="flex items-center gap-2 group">
             <Image
               src="/logo1.png"
-              alt="DesignAI Store Logo"
+              alt="Poinstore Logo"
               width={120}
               height={36}
               className="h-8 lg:h-9 w-auto object-contain"
@@ -67,6 +66,7 @@ export default function Navbar({ cartCount, onCartOpen }: NavbarProps) {
             <button
               id="cart-btn"
               onClick={onCartOpen}
+              aria-label={`Buka keranjang belanja${cartCount > 0 ? `, ${cartCount} item` : ''}`}
               className="relative p-2.5 text-slate-500 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-all"
             >
               <i className="ph-duotone ph-shopping-cart-simple text-xl"></i>
@@ -85,11 +85,12 @@ export default function Navbar({ cartCount, onCartOpen }: NavbarProps) {
             </a>
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Button (Cart Only) */}
           <div className="flex lg:hidden items-center gap-2">
             <button
               id="cart-btn-mobile"
               onClick={onCartOpen}
+              aria-label={`Buka keranjang belanja${cartCount > 0 ? `, ${cartCount} item` : ''}`}
               className="relative p-2 text-slate-500 hover:text-brand-600 transition-all"
             >
               <i className="ph-duotone ph-shopping-cart-simple text-xl"></i>
@@ -97,45 +98,7 @@ export default function Navbar({ cartCount, onCartOpen }: NavbarProps) {
                 {cartCount}
               </span>
             </button>
-            <button
-              id="menu-toggle"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-slate-600 hover:text-brand-600 transition-colors"
-            >
-              <i className="ph-duotone ph-list text-2xl"></i>
-            </button>
           </div>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      <div
-        id="mobile-menu"
-        className={`mobile-menu fixed inset-0 top-16 bg-white z-40 lg:hidden ${
-          mobileMenuOpen ? "active" : ""
-        }`}
-      >
-        <div className="flex flex-col p-6 gap-1">
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className="mobile-link px-4 py-3 text-base font-medium text-slate-700 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-all"
-            >
-              {link.label}
-            </a>
-          ))}
-          <hr className="my-3 border-slate-100" />
-          <a
-            href="https://wa.me/6281234567890"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-primary px-5 py-3 text-center font-semibold text-white rounded-xl flex items-center justify-center gap-2"
-          >
-            <i className="ph-duotone ph-chat-circle-dots text-xl"></i>
-            Hubungi Kami
-          </a>
         </div>
       </div>
     </nav>

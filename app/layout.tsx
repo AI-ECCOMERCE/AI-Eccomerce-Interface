@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import { Inter, Outfit, Geist } from "next/font/google";
+import { Inter, Outfit } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import Script from "next/script";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 const inter = Inter({
   variable: "--font-inter",
@@ -197,15 +195,39 @@ export default function RootLayout({
         "scroll-smooth",
         inter.variable,
         outfit.variable,
-        "font-sans",
-        geist.variable
+        "font-sans"
       )}
     >
       <head>
+        {/* Preconnect to CDN origins to reduce connection latency */}
+        <link rel="preconnect" href="https://unpkg.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://unpkg.com" />
+
+        {/* Preload Phosphor icon font to avoid render-blocking */}
         <link
-          rel="stylesheet"
-          href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css"
+          rel="preload"
+          href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/Phosphor-Duotone.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
         />
+
+        {/* Load Phosphor icon stylesheet non-render-blocking */}
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link
+          rel="preload"
+          href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css"
+          as="style"
+          // @ts-expect-error onLoad with string is valid for progressive CSS loading
+          onLoad="this.onload=null;this.rel='stylesheet'"
+        />
+        <noscript>
+          <link
+            rel="stylesheet"
+            href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css"
+          />
+        </noscript>
+
         <link rel="icon" href="/logo2.png" type="image/png" />
         <link rel="shortcut icon" href="/logo2.png" type="image/png" />
         <link rel="apple-touch-icon" href="/logo2.png" />

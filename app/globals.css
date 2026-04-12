@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* font-display: swap for Phosphor Icons — fixes Lighthouse "Font display" warning */
+@font-face {
+  font-family: 'Phosphor';
+  src: url('https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/Phosphor-Duotone.woff2') format('woff2');
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
+}
+
 * {
   margin: 0;
   padding: 0;

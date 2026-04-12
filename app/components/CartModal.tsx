@@ -49,7 +49,13 @@ export default function CartModal({
   if (!isOpen) return null;
 
   return (
-    <div id="cart-modal" className="fixed inset-0 z-50">
+    <div
+        id="cart-modal"
+        className="fixed inset-0 z-50"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Keranjang belanja"
+      >
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={handleClose}
@@ -71,6 +77,7 @@ export default function CartModal({
             </div>
             <button
               onClick={handleClose}
+              aria-label="Tutup keranjang belanja"
               className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-50 transition-all"
             >
               <i className="ph-duotone ph-x text-xl"></i>
@@ -117,6 +124,7 @@ export default function CartModal({
                       </span>
                       <button
                         onClick={() => onRemoveFromCart(index)}
+                        aria-label={`Hapus ${item.name} dari keranjang`}
                         className="p-1 text-slate-400 hover:text-red-500 transition-colors"
                       >
                         <svg

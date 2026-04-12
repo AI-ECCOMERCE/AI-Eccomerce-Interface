@@ -144,6 +144,7 @@ export default function ProductsSection({ onAddToCart }: ProductsSectionProps) {
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
+              aria-pressed={activeCategory === cat.id}
               className={`category-tab px-5 py-2.5 rounded-full text-sm font-semibold border border-slate-200 bg-white text-slate-600 ${
                 activeCategory === cat.id ? "active" : ""
               }`}
@@ -240,6 +241,13 @@ export default function ProductsSection({ onAddToCart }: ProductsSectionProps) {
                         }
                       }}
                       disabled={totalStock <= 0}
+                      aria-label={
+                        totalStock <= 0
+                          ? `${product.name} — stok habis`
+                          : hasVariants
+                          ? `Pilih varian ${product.name}`
+                          : `Tambah ${product.name} ke keranjang`
+                      }
                       className={`mt-4 w-full py-3 text-sm font-semibold text-white rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${hasVariants ? 'bg-slate-900 hover:bg-slate-800' : 'btn-primary'}`}
                     >
                       {totalStock <= 0 ? (
