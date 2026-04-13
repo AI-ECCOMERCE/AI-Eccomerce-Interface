@@ -124,7 +124,7 @@ export default function BundlePromoSection() {
             </div>
 
             <a
-              href="https://wa.me/6281234567890?text=Halo, saya tertarik dengan paket bundle!"
+              href="https://wa.me/6285656252426?text=Halo, saya tertarik dengan paket bundle!"
               target="_blank"
               rel="noopener noreferrer"
               className="mt-8 inline-flex items-center gap-2 px-8 py-4 bg-white text-brand-700 font-bold rounded-2xl hover:bg-brand-50 transition-all shadow-lg hover:shadow-xl"

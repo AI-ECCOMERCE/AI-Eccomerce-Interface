@@ -75,7 +75,7 @@ export default function Navbar({ cartCount, onCartOpen }: NavbarProps) {
               </span>
             </button>
             <a
-              href="https://wa.me/6281234567890"
+              href="https://wa.me/6285656252426"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-primary px-5 py-2.5 text-sm font-semibold text-white rounded-xl flex items-center gap-2"

@@ -47,7 +47,7 @@ export default function CtaSection() {
 
         <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
           <a
-            href="https://wa.me/6281234567890?text=Halo, saya ingin order akun premium!"
+            href="https://wa.me/6285656252426?text=Halo, saya ingin order akun premium!"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-primary px-10 py-4 text-base font-semibold text-white rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-brand-500/25"
