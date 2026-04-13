@@ -203,7 +203,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://unpkg.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://unpkg.com" />
 
-        {/* Preload Phosphor icon font to avoid render-blocking */}
+        {/* Preload Phosphor icon font — avoids FOIT on first render */}
         <link
           rel="preload"
           href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/Phosphor-Duotone.woff2"
@@ -212,21 +212,12 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
 
-        {/* Load Phosphor icon stylesheet non-render-blocking */}
+        {/* Phosphor Icons stylesheet — loaded directly so icons always render */}
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
-          rel="preload"
+          rel="stylesheet"
           href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css"
-          as="style"
-          // @ts-expect-error onLoad with string is valid for progressive CSS loading
-          onLoad="this.onload=null;this.rel='stylesheet'"
         />
-        <noscript>
-          <link
-            rel="stylesheet"
-            href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css"
-          />
-        </noscript>
 
         <link rel="icon" href="/logo2.png" type="image/png" />
         <link rel="shortcut icon" href="/logo2.png" type="image/png" />
