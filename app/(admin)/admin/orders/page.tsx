@@ -27,6 +27,7 @@ interface Order {
   payment_status?: string | null;
   fulfillment_status?: string | null;
   fulfillment_email_status?: string | null;
+  fulfillment_email_provider_status?: string | null;
   created_at: string;
   order_items?: OrderItem[];
 }
@@ -163,8 +164,16 @@ export default function OrdersPage() {
   };
 
   const getDeliveryStatus = (order: Order): BadgeConfig => {
+    if (order.fulfillment_email_provider_status === "delivered") {
+      return { label: "Masuk Inbox", badgeClass: "badge-success", dotColor: "bg-green-500" };
+    }
+
+    if (order.fulfillment_email_provider_status === "delivery_delayed") {
+      return { label: "Email Tertunda", badgeClass: "badge-warning", dotColor: "bg-amber-500" };
+    }
+
     if (order.fulfillment_email_status === "sent" || order.fulfillment_status === "fulfilled") {
-      return { label: "Email Terkirim", badgeClass: "badge-success", dotColor: "bg-green-500" };
+      return { label: "Diproses Email", badgeClass: "badge-info", dotColor: "bg-blue-500" };
     }
 
     if (order.fulfillment_status === "processing") {
@@ -220,7 +229,7 @@ export default function OrdersPage() {
   const deliveryPendingCount = orders.filter(canRetryFulfillment).length;
   const deliveredCount = orders.filter(
     (order) =>
-      order.fulfillment_email_status === "sent" || order.fulfillment_status === "fulfilled"
+      order.fulfillment_email_provider_status === "delivered"
   ).length;
 
   if (loading) {
@@ -288,7 +297,7 @@ export default function OrdersPage() {
             <i className="ph-duotone ph-envelope-simple-open text-xl text-blue-600"></i>
           </div>
           <div>
-            <p className="text-xs text-slate-400">Email Terkirim</p>
+            <p className="text-xs text-slate-400">Masuk Inbox</p>
             <p className="text-lg font-display font-extrabold text-slate-900">{deliveredCount}</p>
           </div>
         </div>

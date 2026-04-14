@@ -35,9 +35,23 @@ const isPaid = (order: CheckoutOrder) =>
   order.status === "paid" ||
   order.status === "completed";
 
+const isEmailDelivered = (order: CheckoutOrder) =>
+  order.delivery.providerStatus === "delivered";
+
+const isEmailAcceptedByProvider = (order: CheckoutOrder) =>
+  order.delivery.emailStatus === "sent";
+
 const getDeliveryMessage = (order: CheckoutOrder) => {
-  if (order.delivery.emailStatus === "sent") {
+  if (isEmailDelivered(order)) {
     return `Akun premium sudah dikirim ke ${order.customer.email}. Cek inbox dan folder spam jika belum terlihat.`;
+  }
+
+  if (order.delivery.providerStatus === "delivery_delayed") {
+    return `Email sudah diterima provider dan sedang mengalami keterlambatan pengiriman ke ${order.customer.email}. Cek inbox, spam, dan folder promosi beberapa menit lagi.`;
+  }
+
+  if (isEmailAcceptedByProvider(order)) {
+    return `Email akun sudah diterima gateway email dan sedang diproses untuk dikirim ke ${order.customer.email}. Cek inbox, spam, dan folder promosi beberapa menit lagi.`;
   }
 
   if (order.delivery.status === "manual_review") {
@@ -418,8 +432,12 @@ export default function PaymentPageClient() {
             <div className="flex items-center justify-between text-sm pt-2 border-t border-slate-200">
               <span className="text-slate-400">Status Pengiriman</span>
               <span className="font-semibold text-slate-700 capitalize">
-                {order.delivery.emailStatus === "sent"
-                  ? "Email terkirim"
+                {isEmailDelivered(order)
+                  ? "Masuk inbox"
+                  : order.delivery.providerStatus === "delivery_delayed"
+                    ? "Email tertunda"
+                    : isEmailAcceptedByProvider(order)
+                      ? "Diproses email"
                   : order.delivery.status === "manual_review"
                     ? "Perlu review manual"
                     : order.delivery.status === "failed"

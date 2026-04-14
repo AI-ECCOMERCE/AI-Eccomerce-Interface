@@ -47,6 +47,9 @@ export interface CheckoutOrder {
     emailStatus: string;
     emailId: string | null;
     sentAt: string | null;
+    deliveredAt: string | null;
+    providerStatus: string | null;
+    lastEventAt: string | null;
     completedAt: string | null;
     error: string | null;
   };
