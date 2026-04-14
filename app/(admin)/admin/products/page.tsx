@@ -31,6 +31,9 @@ const PREDEFINED_LOGOS = [
   { id: "github-copilot", name: "GitHub Copilot" },
   { id: "notion", name: "Notion" },
   { id: "grammarly", name: "Grammarly" },
+  { id: "capcut", name: "CapCut" },
+  { id: "alight-motion", name: "Alight Motion" },
+  { id: "leonardo-ai", name: "Leonardo AI" },
 ];
 
 export default function ProductsPage() {

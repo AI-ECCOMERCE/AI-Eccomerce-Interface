@@ -34,6 +34,18 @@ export function GrammarlyIcon({ className = "w-8 h-8" }: IconProps) {
   return <img src="https://api.iconify.design/logos:grammarly-icon.svg" alt="Grammarly" className={className} />;
 }
 
+export function CapCutIcon({ className = "w-8 h-8" }: IconProps) {
+  return <img src="https://www.google.com/s2/favicons?domain=capcut.com&sz=128" alt="CapCut" className={`${className} rounded-lg object-contain`} />;
+}
+
+export function AlightMotionIcon({ className = "w-8 h-8" }: IconProps) {
+  return <img src="https://www.google.com/s2/favicons?domain=alightmotion.com&sz=128" alt="Alight Motion" className={`${className} rounded-lg object-contain`} />;
+}
+
+export function LeonardoAIIcon({ className = "w-8 h-8" }: IconProps) {
+  return <img src="https://www.google.com/s2/favicons?domain=leonardo.ai&sz=128" alt="Leonardo AI" className={`${className} rounded-lg object-contain`} />;
+}
+
 // Map product names to their brand icon components
 export const brandIconMap: Record<string, React.FC<IconProps>> = {
   // Formal Names (Legacy Support)
@@ -55,4 +67,7 @@ export const brandIconMap: Record<string, React.FC<IconProps>> = {
   "github-copilot": GitHubCopilotIcon,
   "notion": NotionIcon,
   "grammarly": GrammarlyIcon,
+  "capcut": CapCutIcon,
+  "alight-motion": AlightMotionIcon,
+  "leonardo-ai": LeonardoAIIcon,
 };
