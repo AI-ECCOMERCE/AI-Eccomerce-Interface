@@ -256,8 +256,8 @@ export default function Sidebar({ userEmail }: SidebarProps) {
             <Image
               src="/logo1.png"
               alt="DesignAI"
-              width={100}
-              height={28}
+              width={140}
+              height={38}
               className="h-7 w-auto object-contain brightness-0 invert"
             />
             <span className="text-[10px] font-bold text-brand-400 bg-brand-400/10 px-1.5 py-0.5 rounded-md uppercase tracking-wider">

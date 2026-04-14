@@ -10,7 +10,6 @@ interface NavbarProps {
 
 export default function Navbar({ cartCount, onCartOpen }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -41,9 +40,9 @@ export default function Navbar({ cartCount, onCartOpen }: NavbarProps) {
             <Image
               src="/logo1.png"
               alt="Poinstore Logo"
-              width={120}
-              height={36}
-              className="h-8 lg:h-9 w-auto object-contain"
+              width={140}
+              height={38}
+              className="h-7 sm:h-8 lg:h-9 w-auto object-contain"
               priority
             />
           </a>

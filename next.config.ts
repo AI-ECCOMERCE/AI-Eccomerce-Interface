@@ -16,16 +16,8 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      {
-        // Cache JS/CSS chunks
-        source: "/_next/static/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
+      // NOTE: Do NOT set Cache-Control on /_next/static/:path*
+      // Next.js manages those headers internally; overriding them breaks HMR in dev.
     ];
   },
 };

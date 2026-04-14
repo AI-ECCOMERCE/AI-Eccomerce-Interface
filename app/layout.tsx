@@ -213,7 +213,6 @@ export default function RootLayout({
         />
 
         {/* Phosphor Icons stylesheet — loaded directly so icons always render */}
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"
           href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css"

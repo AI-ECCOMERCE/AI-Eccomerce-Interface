@@ -1,5 +1,3 @@
-"use client";
-
 import Image from "next/image";
 
 export default function Footer() {
@@ -14,9 +12,9 @@ export default function Footer() {
               <Image
                 src="/logo1.png"
                 alt="DesignAI Store Logo"
-                width={120}
-                height={32}
-                className="h-8 w-auto object-contain brightness-0 invert"
+                width={140}
+                height={38}
+                className="h-7 sm:h-8 w-auto object-contain brightness-0 invert"
               />
             </div>
             <p className="text-slate-400 text-sm leading-relaxed mb-6">

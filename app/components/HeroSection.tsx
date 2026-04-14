@@ -1,7 +1,3 @@
-"use client";
-
-import { ChatGPTIcon, GeminiIcon, CanvaIcon } from "./BrandIcons";
-
 export default function HeroSection() {
   return (
     <section

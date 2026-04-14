@@ -22,6 +22,13 @@ interface Product {
   variants?: Variant[];
 }
 
+function normalizeProductForEditing(product: Product): Product {
+  return {
+    ...product,
+    description: product.description ?? "",
+  };
+}
+
 const PREDEFINED_LOGOS = [
   { id: "openai-chatgpt", name: "ChatGPT" },
   { id: "google-gemini", name: "Gemini" },
@@ -96,7 +103,7 @@ export default function ProductsPage() {
   };
 
   const handleEditProductClick = (product: Product) => {
-    setEditingProduct(product);
+    setEditingProduct(normalizeProductForEditing(product));
     const prodVariants = product.variants && product.variants.length > 0 ? product.variants : [{ name: "1 Bulan", price: 0, original_price: 0, stock: 0 }];
     setVariants(prodVariants);
     setHasVariants(product.variants && product.variants.length > 0 ? true : false);
@@ -109,6 +116,7 @@ export default function ProductsPage() {
     try {
       const payload = {
         ...editingProduct,
+        description: editingProduct.description ?? "",
         price: hasVariants && variants.length > 0 ? variants[0].price : editingProduct.price,
         stock: hasVariants ? variants.reduce((acc, v) => acc + v.stock, 0) : editingProduct.stock,
         variants: hasVariants ? variants : []
@@ -242,7 +250,14 @@ export default function ProductsPage() {
                             <i className={`ph-duotone ${product.icon} text-xl text-slate-400`}></i>
                           )}
                         </div>
-                        <p className="text-sm font-semibold text-slate-900">{product.name}</p>
+                        <div className="flex flex-col">
+                          <p className="text-sm font-semibold text-slate-900">{product.name}</p>
+                          {product.variants && product.variants.length > 0 && (
+                            <span className="text-[10px] text-brand-600 font-bold bg-brand-50 border border-brand-100 px-2 py-0.5 rounded-md mt-1 w-fit">
+                              {product.variants.length} Varian
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-5 py-4"><span className="badge-purple text-xs font-semibold px-2.5 py-1 rounded-lg">{product.categories?.name || product.category_slug}</span></td>
@@ -399,6 +414,10 @@ export default function ProductsPage() {
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Nama Produk</label>
                 <input type="text" value={editingProduct.name} onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Deskripsi Produk</label>
+                <textarea rows={4} placeholder="Deskripsi singkat produk..." value={editingProduct.description || ""} onChange={(e) => setEditingProduct({...editingProduct, description: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 resize-none"></textarea>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
