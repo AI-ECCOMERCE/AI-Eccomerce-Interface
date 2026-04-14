@@ -13,7 +13,10 @@ import {
   ORDER_STORAGE_KEY,
 } from "../lib/checkout";
 
-const WHATSAPP_NUMBER = "6281234567890";
+const WHATSAPP_NUMBER = "6285656252426";
+
+const buildWhatsAppUrl = (message: string) =>
+  `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
 const formatCurrency = (amount: number) =>
   `Rp ${amount.toLocaleString("id-ID")}`;
@@ -427,7 +430,9 @@ export default function PaymentPageClient() {
           </div>
           <div className="mt-6 space-y-3">
             <a
-              href={`https://wa.me/${WHATSAPP_NUMBER}?text=Halo admin, pembayaran order ${order.orderId} sudah berhasil. Mohon diproses ya.`}
+              href={buildWhatsAppUrl(
+                `Halo admin, pembayaran order ${order.orderId} sudah berhasil. Mohon diproses ya.`
+              )}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full py-3.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2"
