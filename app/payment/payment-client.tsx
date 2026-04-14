@@ -11,7 +11,6 @@ import {
   CART_STORAGE_KEY,
   CheckoutOrder,
   ORDER_STORAGE_KEY,
-  PAYMENT_ACCESS_HEADER,
 } from "../lib/checkout";
 
 const WHATSAPP_NUMBER = "6281234567890";
@@ -49,11 +48,38 @@ const getDeliveryMessage = (order: CheckoutOrder) => {
   return `Pembayaran berhasil. Akun sedang diproses untuk dikirim ke ${order.customer.email}.`;
 };
 
+const buildPaymentRequestUrl = (
+  orderId: string,
+  pathSuffix = "",
+  accessToken?: string | null
+) => {
+  const url = new URL(`${API_URL}/api/orders/${orderId}/payment${pathSuffix}`);
+
+  if (accessToken) {
+    url.searchParams.set("token", accessToken);
+  }
+
+  return url.toString();
+};
+
+const getReadablePaymentError = (error: unknown, fallback: string) => {
+  if (error instanceof TypeError && error.message === "Failed to fetch") {
+    return "Gagal terhubung ke server pembayaran. Coba beberapa detik lagi.";
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return fallback;
+};
+
 export default function PaymentPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryOrderId = searchParams.get("order");
   const queryToken = searchParams.get("token");
+  const queryStatus = searchParams.get("status");
 
   const [order, setOrder] = useState<CheckoutOrder | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,11 +99,12 @@ export default function PaymentPageClient() {
   }, []);
 
   const fetchOrder = useCallback(async (orderId: string, accessToken: string) => {
-    const response = await fetch(`${API_URL}/api/orders/${orderId}/payment`, {
-      headers: {
-        [PAYMENT_ACCESS_HEADER]: accessToken,
-      },
-    });
+    const response = await fetch(
+      buildPaymentRequestUrl(orderId, "", accessToken),
+      {
+        cache: "no-store",
+      }
+    );
     const json = (await response.json()) as {
       success: boolean;
       data?: CheckoutOrder;
@@ -99,13 +126,10 @@ export default function PaymentPageClient() {
 
       try {
         const response = await fetch(
-          `${API_URL}/api/orders/${orderId}/payment/sync`,
+          buildPaymentRequestUrl(orderId, "/sync", accessToken),
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              [PAYMENT_ACCESS_HEADER]: accessToken,
-            },
+            cache: "no-store",
           }
         );
 
@@ -123,11 +147,7 @@ export default function PaymentPageClient() {
         setErrorMessage("");
       } catch (error) {
         if (!silent) {
-          setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : "Gagal memeriksa status pembayaran."
-          );
+          setErrorMessage(getReadablePaymentError(error, "Gagal memeriksa status pembayaran."));
         }
       } finally {
         if (!silent) {
@@ -147,13 +167,10 @@ export default function PaymentPageClient() {
 
     try {
       const response = await fetch(
-        `${API_URL}/api/orders/${order.id}/payment/simulate`,
+        buildPaymentRequestUrl(order.id, "/simulate", order.paymentAccess.token),
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            [PAYMENT_ACCESS_HEADER]: order.paymentAccess.token,
-          },
+          cache: "no-store",
         }
       );
 
@@ -170,11 +187,7 @@ export default function PaymentPageClient() {
       persistOrder(json.data);
       setErrorMessage("");
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Gagal mensimulasikan pembayaran sandbox."
-      );
+      setErrorMessage(getReadablePaymentError(error, "Gagal mensimulasikan pembayaran sandbox."));
     } finally {
       setSimulating(false);
     }
@@ -242,11 +255,7 @@ export default function PaymentPageClient() {
         }
       } catch (error) {
         if (!cancelled) {
-          setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : "Gagal memuat data pembayaran."
-          );
+          setErrorMessage(getReadablePaymentError(error, "Gagal memuat data pembayaran."));
         }
       } finally {
         if (!cancelled) {
@@ -261,6 +270,14 @@ export default function PaymentPageClient() {
       cancelled = true;
     };
   }, [fetchOrder, persistOrder, queryOrderId, queryToken, router, syncOrder]);
+
+  useEffect(() => {
+    if (!order || !isPaid(order) || queryStatus === "success") {
+      return;
+    }
+
+    router.replace(`/payment?order=${encodeURIComponent(order.id)}&status=success`);
+  }, [order, queryStatus, router]);
 
   useEffect(() => {
     const expiresAt = order?.payment.expiresAt;
