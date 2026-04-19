@@ -17,14 +17,14 @@ const steps = [
   },
   {
     number: "3",
-    title: "Akun Dikirim via Email",
-    description: "Setelah pembayaran dikonfirmasi, akun premium langsung dikirim ke email kamu.",
+    title: "Terima Email",
+    description: "Anda akan menerima email setelah pesanan Anda berhasil dikonfirmasi.",
     showConnector: true,
   },
   {
     number: "4",
-    title: "Minta OTP ke Admin",
-    description: "Hubungi admin via WhatsApp untuk meminta kode OTP dan mulai gunakan akunmu.",
+    title: "Dihubungi Admin",
+    description: "Setelah pesanan sudah berhasil, Anda akan dihubungi oleh admin untuk memproses upgrade ke akun Anda.",
     showConnector: false,
   },
 ];
