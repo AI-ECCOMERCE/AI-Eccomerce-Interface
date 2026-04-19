@@ -418,7 +418,7 @@ export default function PaymentPageClient() {
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">Biaya QRIS</span>
+              <span className="text-slate-400">Biaya Admin</span>
               <span className="font-semibold text-slate-700">
                 {formatCurrency(order.pricing.fee)}
               </span>
@@ -574,7 +574,7 @@ export default function PaymentPageClient() {
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500">Biaya QRIS Pakasir</span>
+                  <span className="text-slate-500">Biaya Admin</span>
                   <span className="font-semibold text-slate-900">
                     {formatCurrency(order.pricing.fee)}
                   </span>
@@ -590,15 +590,17 @@ export default function PaymentPageClient() {
               </div>
 
               <div className="mt-6 space-y-3">
-                <a
-                  href={order.payment.paymentUrl || "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full btn-primary py-4 text-base font-semibold text-white rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-brand-500/25"
-                >
-                  <i className="ph-duotone ph-arrow-square-out text-xl"></i>
-                  Buka di Tab Baru
-                </a>
+                {process.env.NODE_ENV !== "production" && (
+                  <a
+                    href={order.payment.paymentUrl || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full btn-primary py-4 text-base font-semibold text-white rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-brand-500/25"
+                  >
+                    <i className="ph-duotone ph-arrow-square-out text-xl"></i>
+                    Buka di Tab Baru
+                  </a>
+                )}
                 <button
                   type="button"
                   onClick={() =>
