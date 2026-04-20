@@ -48,6 +48,7 @@ export default function OrdersPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [retryingOrderId, setRetryingOrderId] = useState<string | null>(null);
+  const [syncingOrderId, setSyncingOrderId] = useState<string | null>(null);
 
   const isPageVisible = () => document.visibilityState === "visible";
 
@@ -155,6 +156,27 @@ export default function OrdersPage() {
     }
   };
 
+  const handleSyncPayment = async (id: string) => {
+    setSyncingOrderId(id);
+
+    try {
+      await adminFetch(`/api/orders/${id}/payment/sync-admin`, {
+        method: "POST",
+      });
+      showSuccessToast("Sinkronisasi berhasil", "Status pembayaran diperbarui dari Pakasir.");
+      await fetchOrders();
+
+      if (selectedOrder?.id === id) {
+        await fetchOrderDetail(id);
+      }
+    } catch (err) {
+      console.error("Failed to sync payment:", err);
+      setErrorMessage(err instanceof Error ? err.message : "Gagal menyinkronkan status pembayaran.");
+    } finally {
+      setSyncingOrderId(null);
+    }
+  };
+
   const orderStatusConfig: Record<string, BadgeConfig> = {
     paid: { label: "Dibayar", badgeClass: "badge-success", dotColor: "bg-green-500" },
     pending: { label: "Menunggu", badgeClass: "badge-warning", dotColor: "bg-amber-500" },
@@ -202,6 +224,10 @@ export default function OrdersPage() {
 
   const canCompleteOrder = (order: Order) =>
     order.status === "paid" && order.payment_status === "completed";
+
+  const canSyncPayment = (order: Order) =>
+    order.status === "pending" ||
+    (order.status !== "completed" && order.payment_status !== "completed");
 
   const tabs = [
     { id: "all", label: "Semua", count: orders.length },
@@ -391,6 +417,20 @@ export default function OrdersPage() {
                       </td>
                       <td className="px-5 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {canSyncPayment(order) && (
+                            <button
+                              onClick={() => handleSyncPayment(order.id)}
+                              disabled={syncingOrderId === order.id}
+                              className="p-2 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-all disabled:opacity-50"
+                              title="Sync status dari Pakasir"
+                            >
+                              {syncingOrderId === order.id ? (
+                                <div className="w-4 h-4 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin"></div>
+                              ) : (
+                                <i className="ph-duotone ph-cloud-arrow-down text-base"></i>
+                              )}
+                            </button>
+                          )}
                           {canRetryFulfillment(order) && (
                             <button
                               onClick={() => handleRetryFulfillment(order.id)}
@@ -511,6 +551,25 @@ export default function OrdersPage() {
               </div>
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-3 p-6 border-t border-slate-100">
+              {canSyncPayment(selectedOrder) && (
+                <button
+                  onClick={() => handleSyncPayment(selectedOrder.id)}
+                  disabled={syncingOrderId === selectedOrder.id}
+                  className="flex-1 py-3 text-sm font-semibold text-white bg-violet-600 rounded-xl hover:bg-violet-700 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {syncingOrderId === selectedOrder.id ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Menyinkronkan...
+                    </>
+                  ) : (
+                    <>
+                      <i className="ph-duotone ph-cloud-arrow-down text-lg"></i>
+                      Sync Pembayaran
+                    </>
+                  )}
+                </button>
+              )}
               {canRetryFulfillment(selectedOrder) && (
                 <button
                   onClick={() => handleRetryFulfillment(selectedOrder.id)}
