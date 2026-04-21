@@ -41,6 +41,7 @@ const PREDEFINED_LOGOS = [
   { id: "capcut", name: "CapCut" },
   { id: "alight-motion", name: "Alight Motion" },
   { id: "leonardo-ai", name: "Leonardo AI" },
+  { id: "kopi-kenangan", name: "Kopi Kenangan" },
 ];
 
 export default function ProductsPage() {
@@ -312,9 +313,9 @@ export default function ProductsPage() {
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Kategori</label>
                   <select value={newProduct.category_slug} onChange={(e) => setNewProduct({...newProduct, category_slug: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 bg-white">
                     <option value="ai-chat">AI Chatbot</option>
-                    <option value="design">Desain & Kreatif</option>
+                    <option value="design">Desain &amp; Kreatif</option>
                     <option value="productivity">Produktivitas</option>
-                    <option value="coding">Coding & Dev</option>
+                    <option value="coding">Coding &amp; Dev</option>
                   </select>
                 </div>
                 <div>
@@ -424,9 +425,9 @@ export default function ProductsPage() {
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Kategori</label>
                   <select value={editingProduct.category_slug} onChange={(e) => setEditingProduct({...editingProduct, category_slug: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 bg-white">
                     <option value="ai-chat">AI Chatbot</option>
-                    <option value="design">Desain & Kreatif</option>
+                    <option value="design">Desain &amp; Kreatif</option>
                     <option value="productivity">Produktivitas</option>
-                    <option value="coding">Coding & Dev</option>
+                    <option value="coding">Coding &amp; Dev</option>
                   </select>
                 </div>
                 <div>

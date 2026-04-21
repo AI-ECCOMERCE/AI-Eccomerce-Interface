@@ -46,6 +46,10 @@ export function LeonardoAIIcon({ className = "w-8 h-8" }: IconProps) {
   return <img src="https://www.google.com/s2/favicons?domain=leonardo.ai&sz=128" alt="Leonardo AI" className={`${className} rounded-lg object-contain`} />;
 }
 
+export function KopiKenanganIcon({ className = "w-8 h-8" }: IconProps) {
+  return <img src="https://www.google.com/s2/favicons?domain=kopikenangan.com&sz=128" alt="Kopi Kenangan" className={`${className} rounded-lg object-contain`} />;
+}
+
 // Map product names to their brand icon components
 export const brandIconMap: Record<string, React.FC<IconProps>> = {
   // Formal Names (Legacy Support)
@@ -70,4 +74,6 @@ export const brandIconMap: Record<string, React.FC<IconProps>> = {
   "capcut": CapCutIcon,
   "alight-motion": AlightMotionIcon,
   "leonardo-ai": LeonardoAIIcon,
+  "kopi-kenangan": KopiKenanganIcon,
+  "Kopi Kenangan": KopiKenanganIcon,
 };
