@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { brandIconMap } from "./BrandIcons";
 import { API_URL, CartItem } from "../lib/checkout";
 import ProductVariantModal from "./ProductVariantModal";
@@ -232,32 +233,41 @@ export default function ProductsSection({ onAddToCart }: ProductsSectionProps) {
                       )}
                     </div>
 
-                    <button
-                      onClick={() => {
-                        if (hasVariants) {
-                           setSelectedProductForVariant(product);
-                        } else {
-                           onAddToCart({ id: product.id, name: product.name, price: product.price });
+                    <div className="mt-4 flex flex-col gap-2">
+                      <button
+                        onClick={() => {
+                          if (hasVariants) {
+                             setSelectedProductForVariant(product);
+                          } else {
+                             onAddToCart({ id: product.id, name: product.name, price: product.price });
+                          }
+                        }}
+                        disabled={totalStock <= 0}
+                        aria-label={
+                          totalStock <= 0
+                            ? `${product.name} — stok habis`
+                            : hasVariants
+                            ? `Pilih varian ${product.name}`
+                            : `Tambah ${product.name} ke keranjang`
                         }
-                      }}
-                      disabled={totalStock <= 0}
-                      aria-label={
-                        totalStock <= 0
-                          ? `${product.name} — stok habis`
-                          : hasVariants
-                          ? `Pilih varian ${product.name}`
-                          : `Tambah ${product.name} ke keranjang`
-                      }
-                      className={`mt-4 w-full py-3 text-sm font-semibold text-white rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${hasVariants ? 'bg-slate-900 hover:bg-slate-800' : 'btn-primary'}`}
-                    >
-                      {totalStock <= 0 ? (
-                        <><i className="ph-duotone ph-x-circle text-base"></i> Stok Habis</>
-                      ) : hasVariants ? (
-                        <><i className="ph-duotone ph-list text-base"></i> Pilih Varian</>
-                      ) : (
-                        <><i className="ph-duotone ph-shopping-cart-simple text-base"></i> Tambah ke Keranjang</>
-                      )}
-                    </button>
+                        className={`w-full py-3 text-sm font-semibold text-white rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${hasVariants ? 'bg-slate-900 hover:bg-slate-800' : 'btn-primary'}`}
+                      >
+                        {totalStock <= 0 ? (
+                          <><i className="ph-duotone ph-x-circle text-base"></i> Stok Habis</>
+                        ) : hasVariants ? (
+                          <><i className="ph-duotone ph-list text-base"></i> Pilih Varian</>
+                        ) : (
+                          <><i className="ph-duotone ph-shopping-cart-simple text-base"></i> Tambah ke Keranjang</>
+                        )}
+                      </button>
+                      <Link
+                        href={`/product/${product.id}`}
+                        className="w-full py-3 text-sm font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-xl flex items-center justify-center gap-2 transition-all"
+                      >
+                        <i className="ph-duotone ph-eye text-base"></i>
+                        Lihat Detail
+                      </Link>
+                    </div>
                   </div>
                 </div>
               );
