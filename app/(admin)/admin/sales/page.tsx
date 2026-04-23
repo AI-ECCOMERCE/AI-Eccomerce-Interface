@@ -45,21 +45,27 @@ export default function SalesPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [orders, setOrders] = useState<SalesOrder[]>([]);
   const [products, setProducts] = useState<SalesProduct[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [incomes, setIncomes] = useState<any[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchAll() {
       try {
-        const [dashData, ordersData, productsData] = await Promise.all([
+        const [dashData, ordersData, productsData, expensesData, incomesData] = await Promise.all([
           adminFetch<{ success: boolean; data: { stats: DashboardStats } }>("/api/dashboard"),
           adminFetch<{ success: boolean; data: SalesOrder[] }>("/api/orders"),
           adminFetch<{ success: boolean; data: SalesProduct[] }>("/api/products"),
+          adminFetch<{ success: boolean; data: any[] }>("/api/expenses"),
+          adminFetch<{ success: boolean; data: any[] }>("/api/incomes")
         ]);
 
         if (dashData.success) setStats(dashData.data.stats);
         if (ordersData.success) setOrders(ordersData.data);
         if (productsData.success) setProducts(productsData.data);
+        if (expensesData.success && Array.isArray(expensesData.data)) setExpenses(expensesData.data);
+        if (incomesData.success && Array.isArray(incomesData.data)) setIncomes(incomesData.data);
       } catch (err) {
         console.error("Failed to fetch sales data:", err);
         setErrorMessage(err instanceof Error ? err.message : "Gagal memuat laporan penjualan.");
@@ -133,16 +139,22 @@ export default function SalesPage() {
     );
   }
 
-  const totalRevenue = stats?.total_revenue || 0;
+  const totalSystemRevenue = stats?.total_revenue || 0;
+  const totalManualIncome = incomes.reduce((sum, inc) => sum + (inc.amount || 0), 0);
+  const totalExpense = expenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+  
+  const combinedTotalRevenue = totalSystemRevenue + totalManualIncome;
+  const netProfit = combinedTotalRevenue - totalExpense;
+
   const totalOrders = stats?.total_orders || 0;
-  const avgOrder = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+  const avgOrder = totalOrders > 0 ? Math.round(totalSystemRevenue / totalOrders) : 0;
 
   return (
     <div className="p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
           <h1 className="font-display text-2xl lg:text-3xl font-extrabold text-slate-900">Laporan Penjualan</h1>
-          <p className="text-sm text-slate-500 mt-1">Analisis performa penjualan dan pendapatan.</p>
+          <p className="text-sm text-slate-500 mt-1">Analisis performa penjualan, pendapatan, dan pengeluaran.</p>
         </div>
       </div>
 
@@ -152,27 +164,34 @@ export default function SalesPage() {
         </div>
       )}
 
-      <div className="grid sm:grid-cols-3 gap-5 mb-8">
-        <div className="bg-gradient-to-br from-brand-600 to-brand-700 rounded-2xl p-6 text-white">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div className="bg-gradient-to-br from-brand-600 to-brand-700 rounded-2xl p-6 text-white shadow-lg shadow-brand-500/20">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center"><i className="ph-duotone ph-chart-line-up text-xl"></i></div>
-            <span className="text-sm font-medium text-brand-200">Total Revenue</span>
+            <span className="text-sm font-medium text-brand-200">Total Pendapatan</span>
           </div>
-          <p className="text-3xl font-display font-extrabold">{formatCurrency(totalRevenue)}</p>
+          <p className="text-2xl xl:text-3xl font-display font-extrabold">{formatCurrency(combinedTotalRevenue)}</p>
         </div>
-        <div className="bg-white rounded-2xl border border-slate-100 p-6">
+        <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center"><i className="ph-duotone ph-receipt text-xl text-green-600"></i></div>
+            <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center"><i className="ph-duotone ph-trend-down text-xl text-red-600"></i></div>
+            <span className="text-sm font-medium text-slate-500">Total Pengeluaran</span>
+          </div>
+          <p className="text-2xl xl:text-3xl font-display font-extrabold text-slate-900">{formatCurrency(totalExpense)}</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center"><i className="ph-duotone ph-wallet text-xl text-emerald-600"></i></div>
+            <span className="text-sm font-medium text-slate-500">Laba Bersih</span>
+          </div>
+          <p className="text-2xl xl:text-3xl font-display font-extrabold text-slate-900">{formatCurrency(netProfit)}</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center"><i className="ph-duotone ph-receipt text-xl text-blue-600"></i></div>
             <span className="text-sm font-medium text-slate-500">Total Transaksi</span>
           </div>
-          <p className="text-3xl font-display font-extrabold text-slate-900">{totalOrders.toLocaleString("id-ID")}</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-slate-100 p-6">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center"><i className="ph-duotone ph-shopping-bag text-xl text-blue-600"></i></div>
-            <span className="text-sm font-medium text-slate-500">Rata-rata Order</span>
-          </div>
-          <p className="text-3xl font-display font-extrabold text-slate-900">{formatCurrency(avgOrder)}</p>
+          <p className="text-2xl xl:text-3xl font-display font-extrabold text-slate-900">{totalOrders.toLocaleString("id-ID")}</p>
         </div>
       </div>
 

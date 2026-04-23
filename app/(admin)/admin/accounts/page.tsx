@@ -617,15 +617,15 @@ export default function AccountsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                    Email Login
+                    Login Akun
                   </label>
                   <input
-                    type="email"
+                    type="text"
                     value={form.login_email}
                     onChange={(event) =>
                       setForm((current) => ({ ...current, login_email: event.target.value }))
                     }
-                    placeholder="akun@provider.com"
+                    placeholder="Contoh: akun@provider.com atau 081234567890"
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
                   />
                 </div>

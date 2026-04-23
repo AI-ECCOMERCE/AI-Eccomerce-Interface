@@ -65,6 +65,8 @@ const menuItems: SidebarSection[] = [
     items: [
       { label: "Penjualan", href: "/admin/sales", icon: "ph-chart-line-up" },
       { label: "Pelanggan", href: "/admin/customers", icon: "ph-users-three" },
+      { label: "Keuangan", href: "/admin/expenses", icon: "ph-coins" },
+      { label: "Kontak Seller", href: "/admin/sellers", icon: "ph-address-book" },
     ],
   },
   {
@@ -207,14 +209,14 @@ export default function Sidebar({ userEmail }: SidebarProps) {
         items: section.items.map((item) =>
           item.href === "/admin/orders"
             ? {
-                ...item,
-                badge:
-                  unreadOrdersCount > 0
-                    ? unreadOrdersCount > 99
-                      ? "99+"
-                      : String(unreadOrdersCount)
-                    : undefined,
-              }
+              ...item,
+              badge:
+                unreadOrdersCount > 0
+                  ? unreadOrdersCount > 99
+                    ? "99+"
+                    : String(unreadOrdersCount)
+                  : undefined,
+            }
             : item
         ),
       })),
@@ -246,9 +248,8 @@ export default function Sidebar({ userEmail }: SidebarProps) {
 
   return (
     <aside
-      className={`fixed left-0 top-0 bottom-0 z-40 bg-sidebar-bg border-r border-sidebar-border flex flex-col transition-all duration-300 ${
-        collapsed ? "w-[72px]" : "w-64"
-      }`}
+      className={`fixed left-0 top-0 bottom-0 z-40 bg-sidebar-bg border-r border-sidebar-border flex flex-col transition-all duration-300 ${collapsed ? "w-[72px]" : "w-64"
+        }`}
     >
       <div className="flex items-center justify-between px-5 h-16 border-b border-sidebar-border flex-shrink-0">
         {!collapsed && (
@@ -270,9 +271,8 @@ export default function Sidebar({ userEmail }: SidebarProps) {
           className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-sidebar-hover transition-all"
         >
           <i
-            className={`ph-duotone ${
-              collapsed ? "ph-arrow-line-right" : "ph-arrow-line-left"
-            } text-lg`}
+            className={`ph-duotone ${collapsed ? "ph-arrow-line-right" : "ph-arrow-line-left"
+              } text-lg`}
           ></i>
         </button>
       </div>
@@ -296,19 +296,17 @@ export default function Sidebar({ userEmail }: SidebarProps) {
                     key={item.href}
                     href={item.href}
                     pendingClassName="sidebar-link--pending"
-                    className={`sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium group ${
-                      isActive
+                    className={`sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium group ${isActive
                         ? "bg-brand-600/15 text-brand-400 border-r-0"
                         : "text-slate-400 hover:text-slate-200"
-                    } ${collapsed ? "justify-center" : ""}`}
+                      } ${collapsed ? "justify-center" : ""}`}
                     title={collapsed ? item.label : undefined}
                   >
                     <i
-                      className={`ph-duotone ${item.icon} text-xl ${
-                        isActive
+                      className={`ph-duotone ${item.icon} text-xl ${isActive
                           ? "text-brand-400"
                           : "text-slate-500 group-hover:text-slate-300"
-                      }`}
+                        }`}
                     ></i>
                     {!collapsed && (
                       <>
@@ -330,9 +328,8 @@ export default function Sidebar({ userEmail }: SidebarProps) {
 
       <div className="border-t border-sidebar-border p-3 flex-shrink-0 space-y-3">
         <div
-          className={`flex items-center gap-3 p-2.5 rounded-xl bg-sidebar-hover/60 ${
-            collapsed ? "justify-center" : ""
-          }`}
+          className={`flex items-center gap-3 p-2.5 rounded-xl bg-sidebar-hover/60 ${collapsed ? "justify-center" : ""
+            }`}
         >
           <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
             {userInitial}
@@ -348,9 +345,8 @@ export default function Sidebar({ userEmail }: SidebarProps) {
         <button
           onClick={handleLogout}
           disabled={isSigningOut}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:text-white hover:bg-sidebar-hover transition-all disabled:opacity-60 ${
-            collapsed ? "justify-center" : ""
-          }`}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:text-white hover:bg-sidebar-hover transition-all disabled:opacity-60 ${collapsed ? "justify-center" : ""
+            }`}
           title={collapsed ? "Logout" : undefined}
         >
           <i className="ph-duotone ph-sign-out text-xl"></i>

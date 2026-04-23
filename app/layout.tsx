@@ -230,7 +230,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="bg-white text-slate-800 antialiased">
+      <body className="bg-white text-slate-800 antialiased" suppressHydrationWarning>
         {children}
         <Toaster />
       </body>
