@@ -43,6 +43,58 @@ interface ProductsSectionProps {
   onAddToCart: (product: Omit<CartItem, "quantity">) => void;
 }
 
+// ── Dummy sold-count data (public page only, does NOT affect admin) ──────────
+const SOLD_COUNT_MAP: Record<string, number> = {
+  // Kunci = nama produk (case-insensitive match di bawah)
+  "ChatGPT Plus": 842,
+  "Canva Pro": 1247,
+  "Grammarly Premium": 613,
+  "Adobe Creative Cloud": 389,
+  "Notion AI": 527,
+  "Midjourney": 764,
+  "Spotify Premium": 1583,
+  "YouTube Premium": 921,
+  "Netflix Premium": 1102,
+  "Disney+ Hotstar": 478,
+  "Microsoft 365": 356,
+  "Google One": 294,
+  "Duolingo Plus": 183,
+  "LinkedIn Premium": 267,
+  "Coursera Plus": 142,
+  "Skillshare": 219,
+  "Envato Elements": 431,
+  "Figma Professional": 318,
+  "Zoom Pro": 205,
+  "Loom Pro": 176,
+  "NordVPN": 689,
+  "ExpressVPN": 542,
+  "1Password": 234,
+  "Dropbox Plus": 198,
+  "Evernote Premium": 167,
+};
+
+/** Kembalikan angka terjual untuk produk; fallback ke hash deterministik 30–450. */
+function getSoldCount(productName: string, productId: string): number {
+  // Cek exact match dulu
+  if (SOLD_COUNT_MAP[productName]) return SOLD_COUNT_MAP[productName];
+  // Cek partial / case-insensitive match
+  const key = Object.keys(SOLD_COUNT_MAP).find((k) =>
+    productName.toLowerCase().includes(k.toLowerCase()) ||
+    k.toLowerCase().includes(productName.toLowerCase())
+  );
+  if (key) return SOLD_COUNT_MAP[key];
+  // Fallback: hash dari id → bilangan 30–450
+  const hash = productId.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return 30 + (hash % 421);
+}
+
+/** Format angka terjual: ≥1000 → "1.2rb", else angka biasa (tanpa tanda +) */
+function formatSold(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(".0", "")}rb`;
+  return `${n}`;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function ProductsSection({ onAddToCart }: ProductsSectionProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<{ id: string; label: string }[]>([
@@ -226,11 +278,20 @@ export default function ProductsSection({ onAddToCart }: ProductsSectionProps) {
                           </span>
                         </div>
                       </div>
-                      {!hasVariants && discount && (
-                        <span className="px-2.5 py-1 rounded-lg bg-red-50 text-red-500 text-xs font-bold">
-                          {discount}
+                      {/* ── Produk Terjual (kanan bawah sejajar harga, dummy data public only) ── */}
+                      <div className="flex flex-col items-end gap-1">
+                        {!hasVariants && discount && (
+                          <span className="px-2.5 py-1 rounded-lg bg-red-50 text-red-500 text-xs font-bold">
+                            {discount}
+                          </span>
+                        )}
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg bg-orange-50 text-orange-600">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M17 9V7A5 5 0 0 0 7 7v2a3 3 0 0 0-3 3v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a3 3 0 0 0-3-3Zm-8-2a3 3 0 0 1 6 0v2H9V7Zm9 12H6v-7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7Z"/>
+                          </svg>
+                          {formatSold(getSoldCount(product.name, product.id))} terjual
                         </span>
-                      )}
+                      </div>
                     </div>
 
                     <div className="mt-4 flex flex-col gap-2">
